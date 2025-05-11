@@ -1,0 +1,216 @@
+import { fetch } from "expo/fetch";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { SymbolView } from "expo-symbols";
+import React, { useCallback, useRef, useState } from "react";
+import {
+  Keyboard,
+  Text,
+  type TextInput,
+  type TextStyle,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+  type ViewStyle,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { PrimaryButton } from "@/components/Button/Primary";
+import TextField from "@/components/TextField";
+import { useTheme } from "@/hooks/useTheme";
+import ENDPOINT from "@/constants/endpoint";
+import * as SecureStore from "expo-secure-store";
+import { toast } from "sonner-native";
+
+import { jwtAtom, saveJWT } from "@/utils/jwt";
+import { useSetAtom } from "jotai";
+
+export default function EnterPassword() {
+  const { email } = useLocalSearchParams();
+  const router = useRouter();
+  const styles = styleSheet();
+  const {
+    background,
+    text,
+    text_2,
+    heading,
+    _email_,
+    policyText,
+    links,
+    disabled,
+  } = styles;
+  const isTargetTextInput = useRef(false);
+  const textFieldRef = useRef<TextInput>(null);
+
+  const [_password, _setPassword] = useState("");
+  const { top, bottom } = useSafeAreaInsets();
+  const setJWT = useSetAtom(jwtAtom);
+
+  const loginToAccount = async () => {
+    toast.dismiss();
+    const loading_id = toast.loading("loading...");
+    const resp = await fetch(`${ENDPOINT}/auth/login`, {
+      body: JSON.stringify({
+        email,
+        password: _password,
+      }),
+      method: "POST",
+      headers: {
+        Accept: "*/*",
+        "Content-Type": "application/json",
+        "User-Agent": "RealStayApp",
+      },
+    });
+    const result = await resp.json();
+    toast.dismiss(loading_id);
+    if (resp.status === 201) {
+      saveJWT(result["access_token"], setJWT);
+      await SecureStore.setItemAsync("user_info", JSON.stringify(result.user));
+      // TODO: account type later
+      router.replace({ pathname: "/index" });
+    } else if (resp.status === 401) {
+      toast.error(result.message);
+    } else {
+      toast.error("Something went wrong!");
+    }
+  };
+
+  return (
+    <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
+      <View
+        style={[
+          {
+            flex: 1,
+            paddingHorizontal: 24,
+            paddingTop: 8,
+            paddingBottom: bottom + 16,
+          },
+          background,
+        ]}
+      >
+        <Stack.Screen
+          options={{
+            title: "Enter password to account",
+            headerTitle: () => <></>,
+            headerShown: true,
+            headerBackTitle: "Go back",
+            headerStyle: {
+              backgroundColor: background.backgroundColor?.toString(),
+            },
+            headerShadowVisible: false,
+            headerBackTitleStyle: {
+              fontFamily: text.fontFamily,
+              fontSize: text.fontSize,
+            },
+            headerTintColor: text_2.color?.toString(),
+            headerRight(props) {
+              return (
+                <TouchableOpacity
+                  onPress={() => {
+                    router.replace({
+                      pathname: "/createPassword",
+                      params: { email },
+                    });
+                  }}
+                >
+                  <Text style={[styles.text, { color: styles.links.color }]}>
+                    Create Account
+                  </Text>
+                </TouchableOpacity>
+              );
+            },
+          }}
+        />
+        <Text style={heading}>Log into your account.</Text>
+        <View style={{ marginTop: 8 * 7, gap: 32 }}>
+          <TextField value={`${email}`} editable={false} />
+          <TextField
+            autoFocus
+            enterKeyHint="done"
+            spellCheck={false}
+            forPassword
+            stateValue={_password}
+            onChangeText={(t) => _setPassword(t)}
+            //onEndEditing={loginToAccount}
+          />
+        </View>
+
+        <PrimaryButton
+          disabled={!_password.length}
+          style={[{ marginTop: 80 }, !_password.length ? disabled : null]}
+          textStyle={[!_password.length ? { color: disabled.color } : {}]}
+          onPress={loginToAccount}
+        >
+          Continue
+        </PrimaryButton>
+
+        <View style={{ flex: 2 }} />
+        <Text style={[policyText]}>
+          By signing up with a service provider or pressing the Continue button,
+          you are accepting the <Text style={links}>Terms of Service</Text> and{" "}
+          <Text style={links}>Privacy Policy</Text>.
+        </Text>
+        <View style={{ flex: 1 }} />
+      </View>
+    </TouchableWithoutFeedback>
+  );
+}
+
+const styleSheet = (): { [key: string]: ViewStyle & TextStyle } => {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const theme = useTheme();
+  return {
+    disabled: {
+      backgroundColor: theme.color.elementsButtonDisabled,
+      shadowOpacity: 0,
+      color: theme.color.elementsButtonDisabledText,
+    },
+    policyText: {
+      ...theme.fontStyles.regular,
+      lineHeight: theme.fontSizes.sm * 1.4,
+      fontSize: theme.fontSizes.sm,
+      color: theme.color.appTextPrimary,
+      textAlign: "center",
+    },
+    links: {
+      color: theme.color.appTextAccent,
+      textDecorationLine: "underline",
+    },
+    background: {
+      backgroundColor: theme.color.appBackground,
+    },
+    text: {
+      ...theme.fontStyles.semiBold,
+      color: theme.color.appTextPrimary,
+      fontSize: theme.fontSizes.lg,
+    },
+    text_2: {
+      color: theme.color.appTextSecondary,
+    },
+    heading: {
+      ...theme.fontStyles.semiBold,
+      fontSize: theme.fontSizes.xl_4,
+      lineHeight: theme.fontSizes.xl_4 + 6,
+      color: theme.color.appTextPrimary,
+      marginTop: 16,
+    },
+    _email_: {
+      color: theme.color.appTextAccent,
+    },
+    textInput: {
+      color: theme.color.appTextPrimary,
+      borderWidth: 3,
+      borderColor: theme.color.elementsTextFieldBorder,
+      backgroundColor: theme.color.elementsTextFieldBackground,
+      ...theme.fontStyles.regular,
+      fontSize: theme.fontSizes.base,
+      flexDirection: "row",
+      alignItems: "center",
+      height: 48,
+      paddingHorizontal: 16,
+      borderRadius: 16,
+    },
+    activeColor: {
+      borderColor: theme.color.elementsTextFieldFocus,
+    },
+  };
+};
