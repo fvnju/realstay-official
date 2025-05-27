@@ -66,7 +66,7 @@ export default function EnterPassword() {
       saveJWT(result["access_token"], setJWT);
       await SecureStore.setItemAsync("user_info", JSON.stringify(result.user));
       // TODO: account type later
-      router.replace({ pathname: "/index" });
+      router.replace({ pathname: "/" });
     } else if (resp.status === 401) {
       toast.error(result.message);
     } else {

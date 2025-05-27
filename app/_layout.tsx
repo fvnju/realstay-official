@@ -46,8 +46,6 @@ export default function RootLayout() {
   const colorScheme = useAtomValue(appearanceAtom);
   const theme = useTheme();
 
-  loadJWT(useSetAtom(jwtAtom));
-
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <QueryClientProvider client={queryClient}>

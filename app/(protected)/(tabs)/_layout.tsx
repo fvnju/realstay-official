@@ -113,6 +113,7 @@ export default function Layout() {
 }
 
 const styleSheet = () => {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const theme = useTheme();
 
   return {
