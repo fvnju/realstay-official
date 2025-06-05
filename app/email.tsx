@@ -1,16 +1,18 @@
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 
-import { SymbolView } from "expo-symbols";
+import { PrimaryButton } from "@/components/Button/Primary";
+import TextField from "@/components/TextField";
+import { useTheme } from "@/hooks/useTheme";
+import { get } from "@/utils/apiClient";
+import { useServerWarmup } from "@/utils/serverWarmup";
+import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
-import React, { useEffect, useCallback, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
-  Platform,
   Text,
   type TextInput,
   type TextStyle,
-  TouchableOpacity,
-  TouchableOpacityProps,
   TouchableWithoutFeedback,
   View,
   type ViewStyle,
@@ -19,25 +21,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 import { z as zod } from "zod";
 import { fromError } from "zod-validation-error";
-import { PrimaryButton } from "@/components/Button/Primary";
-import TextField from "@/components/TextField";
-import { useTheme } from "@/hooks/useTheme";
-import { fetch } from "expo/fetch";
-import ENDPOINT from "@/constants/endpoint";
 
 async function userExist(usersEmail: string): Promise<boolean> {
-  const response = await fetch(
-    `${ENDPOINT}/users/check-email-availability?email=${usersEmail}`,
+  const response = await get<{ user_exist: boolean }>(
+    `/users/check-email-availability?email=${usersEmail}`,
+    { showErrorToast: false }
   );
 
-  if (!response.ok) {
-    throw new Error(
-      `HTTP error! status: ${response.status}. ${JSON.stringify(await response.json())}`,
-    );
+  if (response.error) {
+    throw new Error(response.error);
   }
 
-  const data: { user_exist: boolean } = await response.json();
-  return data.user_exist;
+  return response.data?.user_exist || false;
 }
 
 export default function EnterEmail() {
@@ -55,8 +50,14 @@ export default function EnterEmail() {
   } = styles;
   const isTargetTextInput = useRef(false);
   const textFieldRef = useRef<TextInput>(null);
+  const { status, warmupServerManually } = useServerWarmup();
 
-  const [_email, _setEmail] = useState("");
+  const [_email, _setEmail] = useState(
+    SecureStore.getItem("user_info") === null
+      ? ""
+      : JSON.parse(SecureStore.getItem("user_info")!).email
+  );
+  const [isChecking, setIsChecking] = useState(false);
 
   const _sendEmail = async () => {
     try {
@@ -66,13 +67,23 @@ export default function EnterEmail() {
       toast.error(error.toString());
       return;
     }
-    const emailExist = await userExist(_email);
-    // console.log(emailExist);
 
-    if (emailExist) {
-      router.push({ pathname: "/enterPassword", params: { email: _email } });
-    } else {
-      router.push({ pathname: "/createPassword", params: { email: _email } });
+    setIsChecking(true);
+    try {
+      // If server is in cold start, the apiClient will handle it automatically
+      const emailExist = await userExist(_email);
+
+      if (emailExist) {
+        router.push({ pathname: "/enterPassword", params: { email: _email } });
+      } else {
+        router.push({ pathname: "/createPassword", params: { email: _email } });
+      }
+    } catch (error) {
+      toast.error("Failed to check email. Please try again.");
+      // If there was an error, try to manually warm up the server
+      warmupServerManually();
+    } finally {
+      setIsChecking(false);
     }
   };
 
@@ -146,12 +157,23 @@ export default function EnterEmail() {
         />
 
         <PrimaryButton
-          disabled={!_email.length}
-          style={[{ marginTop: 80 }, !_email.length ? disabled : null]}
-          textStyle={[!_email.length ? { color: disabled.color } : {}]}
+          disabled={!_email.length || isChecking || status === "warming-up"}
+          style={[
+            { marginTop: 80 },
+            !_email.length || isChecking || status === "warming-up"
+              ? disabled
+              : null,
+          ]}
+          textStyle={[
+            !_email.length || isChecking || status === "warming-up"
+              ? { color: disabled.color }
+              : {},
+          ]}
           onPress={_sendEmail}
         >
-          Continue
+          {isChecking || status === "warming-up"
+            ? "Please wait..."
+            : "Continue"}
         </PrimaryButton>
 
         <View style={{ flex: 2 }} />
@@ -162,7 +184,7 @@ export default function EnterEmail() {
             style={links}
             onPress={async () => {
               const result = await WebBrowser.openBrowserAsync(
-                "https://www.google.com",
+                "https://www.google.com"
               );
             }}
           >
@@ -173,7 +195,7 @@ export default function EnterEmail() {
             style={links}
             onPress={async () => {
               const result = await WebBrowser.openBrowserAsync(
-                "https://www.google.com",
+                "https://www.google.com"
               );
             }}
           >
@@ -219,7 +241,7 @@ const styleSheet = (): { [key: string]: ViewStyle & TextStyle } => {
       color: theme.color.appTextSecondary,
     },
     heading: {
-      ...theme.fontStyles.semiBold,
+      ...theme.fontStyles.bold,
       fontSize: theme.fontSizes.xl_4,
       lineHeight: theme.fontSizes.xl_4 + 6,
       color: theme.color.appTextPrimary,

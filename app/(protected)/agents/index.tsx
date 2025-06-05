@@ -1,21 +1,24 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import React from "react";
 
-import ListingCard from "@/components/ListingCard";
-import TextField from "@/components/TextField";
+import { PrimaryButton } from "@/components/Button/Primary";
+import { DropdownMenu, MenuOption } from "@/components/DropDown";
 import { Sheet, useSheetRef } from "@/components/sheet";
+import TextField from "@/components/TextField";
 import { useTheme } from "@/hooks/useTheme";
 import { get } from "@/utils/apiClient";
 import { useServerWarmup } from "@/utils/serverWarmup";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { ArrowLeft, MagnifyingGlass } from "phosphor-react-native";
+import { Camera, CaretDown, Plus } from "phosphor-react-native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,7 +26,6 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { TouchableOpacity } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -69,17 +71,15 @@ export default function App() {
   }
 
   if (!userInfo) {
-    return <GuestApp usersName="Guest User" />;
+    return <HostApp usersName="Guest User" />;
   }
 
   return (
-    <GuestApp
-      usersName={`${userInfo["first_name"]} ${userInfo["last_name"]}`}
-    />
+    <HostApp usersName={`${userInfo["first_name"]} ${userInfo["last_name"]}`} />
   );
 }
 
-const GuestApp = ({ usersName }: { usersName: string }) => {
+const HostApp = ({ usersName }: { usersName: string }) => {
   const { email } = useLocalSearchParams();
   const sheetRef = useSheetRef();
   const styles = styleSheet();
@@ -173,7 +173,7 @@ const GuestApp = ({ usersName }: { usersName: string }) => {
 
         <View style={{ alignItems: "flex-end", paddingTop: 20 }}>
           <Text style={[text, text_2]}>Logged in as</Text>
-          <Text style={[styles.user_type, styles.semiBold]}>Guest</Text>
+          <Text style={[styles.user_type, styles.semiBold]}>Host</Text>
         </View>
       </View>
 
@@ -216,11 +216,7 @@ const GuestApp = ({ usersName }: { usersName: string }) => {
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
         >
-          <MagnifyingGlass
-            size={16}
-            weight="bold"
-            color={theme.color.appTextPrimary}
-          />
+          <Plus size={16} weight="bold" color={theme.color.appTextPrimary} />
           <Text
             style={{
               color: theme.color.appTextPrimary,
@@ -229,7 +225,7 @@ const GuestApp = ({ usersName }: { usersName: string }) => {
               letterSpacing: theme.letterSpacing.loose * theme.fontSizes.xs,
             }}
           >
-            Search
+            Add listing
           </Text>
         </Pressable>
       </Animated.View>
@@ -245,54 +241,41 @@ const GuestApp = ({ usersName }: { usersName: string }) => {
             paddingTop: top - 28,
           }}
         >
-          <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <TouchableOpacity
+          <Pressable
+            style={{ flex: 1 }}
+            onPress={Keyboard.dismiss}
+            onLongPress={Keyboard.dismiss}
+          >
+            <View style={{ paddingHorizontal: 16, paddingTop: 12, flex: 1 }}>
+              <PrimaryButton
                 style={{
-                  height: 48,
-                  width: 48 + 24,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  paddingLeft: 24,
+                  backgroundColor: theme.color.appDropShadow,
+                  alignSelf: "flex-start",
+                  width: "auto",
+                  paddingHorizontal: 24,
                 }}
+                textStyle={{ color: theme.color.appTextPrimary }}
                 onPress={() => {
-                  sheetRef.current?.dismiss();
+                  Keyboard.dismiss();
+                  sheetRef.current?.close();
                 }}
               >
-                <ArrowLeft
-                  weight="bold"
-                  size={28}
-                  color={theme.color.appTextPrimary}
-                />
-              </TouchableOpacity>
+                Exit
+              </PrimaryButton>
               <Text
-                style={{
-                  ...theme.fontStyles.medium,
-                  fontSize: theme.fontSizes.xl_4,
-                  color: theme.color.appTextPrimary,
-                  letterSpacing:
-                    theme.letterSpacing.tight * theme.fontSizes.xl_4,
-                }}
+                style={[
+                  {
+                    marginTop: 40,
+                    fontSize: 38,
+                    color: theme.color.appTextPrimary,
+                  },
+                  theme.fontStyles.semiBold,
+                ]}
               >
-                Where to?
+                Add Listing
               </Text>
+              <AddListing />
             </View>
-            <KeyboardAvoidingView
-              style={{
-                flex: 1,
-                justifyContent: "flex-end",
-                paddingBottom: bottom + 32,
-                paddingHorizontal: 24,
-              }}
-              behavior="height"
-            >
-              <TextField
-                autoFocus
-                placeholder="Tap to search..."
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </KeyboardAvoidingView>
           </Pressable>
         </BottomSheetView>
       </Sheet>
@@ -307,74 +290,206 @@ const GuestApp = ({ usersName }: { usersName: string }) => {
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
       >
-        {loading ? (
-          <View style={{ padding: 20, alignItems: "center" }}>
-            <ActivityIndicator size="large" color={theme.color.appTextAccent} />
-            <Text
-              style={{ marginTop: 12, color: theme.color.appTextSecondary }}
-            >
-              Loading listings...
-            </Text>
-          </View>
-        ) : status === "error" ? (
-          <View style={{ padding: 20, alignItems: "center" }}>
-            <Text
-              style={{ marginBottom: 16, color: theme.color.appTextSecondary }}
-            >
-              Unable to connect to server
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: theme.color.appTextAccent,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 8,
-              }}
-              onPress={warmupServerManually}
-            >
-              <Text style={{ color: "white", fontWeight: "600" }}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : isDummy ? (
-          Array.from({ length: 4 }).map((_, index) => (
-            <ListingCard
-              key={`listitem-${index}`}
-              onPress={() => {
-                router.push({
-                  // @ts-expect-error typescript stuff
-                  pathname: "/listing",
-                  params: { demoNumber: (index + 1).toString() },
-                });
-              }}
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-              currency="NGN"
-              dateRange="12-14"
-              distance="10km"
-              imageUrl={`house${index + 1}`}
-              location="London"
-              price="5000"
-              rating={4.5}
-            />
-          ))
-        ) : (
-          listings.map((listing, index) => (
-            <ListingCard
-              key={`listing-${listing.id || index}`}
-              currency={listing.currency || "NGN"}
-              dateRange={listing.dateRange || "Available"}
-              distance={listing.distance || "Unknown"}
-              imageUrl={listing.imageUrl || `house${(index % 4) + 1}`}
-              location={listing.location || "Unknown"}
-              price={listing.price || "Contact"}
-              rating={listing.rating || 4.0}
-            />
-          ))
-        )}
         <View style={{ height: 68 }} />
       </ScrollView>
     </View>
   );
 };
+
+function AddListing() {
+  const theme = useTheme();
+  const [visible, setVisible] = useState(false);
+  const [property, setProperty] = useState("House");
+  const { bottom } = useSafeAreaInsets();
+
+  return (
+    <View style={{ marginTop: 24, gap: 32, flex: 1 }}>
+      <KeyboardAvoidingView behavior="padding" style={{ gap: 8 }}>
+        <Text
+          style={[
+            { fontSize: 16, color: theme.color.appTextPrimary },
+            theme.fontStyles.semiBold,
+          ]}
+        >
+          Address
+        </Text>
+        <TextField autoFocus autoCapitalize="none" autoCorrect={false} />
+        <Text
+          style={[
+            { fontSize: 14, color: theme.color.appTextSecondary },
+            theme.fontStyles.medium,
+          ]}
+        >
+          This is just an approximate address that will be shown to guest users
+          that hasn’t indicated interest.
+        </Text>
+      </KeyboardAvoidingView>
+
+      <View style={{ gap: 8 }}>
+        <Text
+          style={[
+            { fontSize: 16, color: theme.color.appTextPrimary },
+            theme.fontStyles.semiBold,
+          ]}
+        >
+          Get location data
+        </Text>
+        <PrimaryButton
+          style={{
+            backgroundColor: theme.color.appDropShadow,
+          }}
+          textStyle={{ color: theme.color.appTextPrimary }}
+          onPress={() => {
+            const latitude = 9.0573;
+            const longitude = 7.4951;
+            const label = "Somewhere";
+
+            const url = Platform.select({
+              ios: `http://maps.apple.com/?ll=${latitude},${longitude}&q=${label}`,
+              android: `geo:${latitude},${longitude}?q=${label}`,
+            });
+            Linking.openURL(url!);
+          }}
+        >
+          Open Maps
+        </PrimaryButton>
+      </View>
+
+      <View style={{ gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Text
+            style={[
+              { fontSize: 16, color: theme.color.appTextPrimary },
+              theme.fontStyles.semiBold,
+            ]}
+          >
+            Upload photos
+          </Text>
+          <Camera size={20} color={theme.color.appTextAccent} weight="bold" />
+        </View>
+        <PrimaryButton
+          style={{
+            backgroundColor: theme.color.appDropShadow,
+          }}
+          textStyle={{ color: theme.color.appTextPrimary }}
+        >
+          Open Photos
+        </PrimaryButton>
+      </View>
+
+      <View style={{ gap: 8 }}>
+        <Text
+          style={[
+            { fontSize: 16, color: theme.color.appTextPrimary },
+            theme.fontStyles.semiBold,
+          ]}
+        >
+          Type of property
+        </Text>
+        <DropdownMenu
+          itemsBackgroundColor={theme.color.appSurface}
+          visible={visible}
+          handleOpen={() => {
+            setVisible(true);
+            Keyboard.dismiss();
+          }}
+          handleClose={() => setVisible(false)}
+          trigger={
+            <View
+              style={[
+                styles.triggerStyle,
+                {
+                  borderColor: theme.color.elementsTextFieldBorder,
+                  backgroundColor: theme.color.elementsTextFieldBackground,
+                  borderWidth: 3,
+                  gap: 8,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  ...theme.fontStyles.regular,
+                  color: theme.color.appTextSecondary,
+                }}
+              >
+                {property}
+              </Text>
+              <CaretDown
+                weight="light"
+                color={theme.color.appTextSecondary}
+                size={20}
+              />
+            </View>
+          }
+        >
+          <MenuOption
+            onSelect={() => {
+              setVisible(false);
+              setProperty("House");
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 16,
+                ...theme.fontStyles.regular,
+                color: theme.color.appTextPrimary,
+              }}
+            >
+              House
+            </Text>
+          </MenuOption>
+          <MenuOption
+            onSelect={() => {
+              setVisible(false);
+              setProperty("Land");
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 16,
+                ...theme.fontStyles.regular,
+                color: theme.color.appTextPrimary,
+              }}
+            >
+              Land
+            </Text>
+          </MenuOption>
+        </DropdownMenu>
+      </View>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "flex-end",
+          paddingBottom: bottom + 24,
+        }}
+      >
+        <PrimaryButton>Next</PrimaryButton>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5fcff",
+  },
+  triggerStyle: {
+    height: 48,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    // width: 120,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    gap: 4,
+    alignSelf: "flex-start",
+  },
+});
 
 const styleSheet = () => {
   // eslint-disable-next-line react-hooks/rules-of-hooks

@@ -1,10 +1,10 @@
+import { useTheme } from "@/hooks/useTheme";
 import {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
   BottomSheetModal,
 } from "@gorhom/bottom-sheet";
 import * as React from "react";
-import { useTheme } from "@/hooks/useTheme";
 
 const Sheet = React.forwardRef<
   BottomSheetModal,
@@ -12,7 +12,7 @@ const Sheet = React.forwardRef<
 >(
   (
     { index = 0, backgroundStyle, style, handleIndicatorStyle, ...props },
-    ref,
+    ref
   ) => {
     const colors = useTheme();
 
@@ -20,7 +20,7 @@ const Sheet = React.forwardRef<
       (props: BottomSheetBackdropProps) => (
         <BottomSheetBackdrop {...props} disappearsOnIndex={-1} />
       ),
-      [],
+      []
     );
     return (
       <BottomSheetModal
@@ -47,7 +47,7 @@ const Sheet = React.forwardRef<
         {...props}
       />
     );
-  },
+  }
 );
 
 function useSheetRef() {

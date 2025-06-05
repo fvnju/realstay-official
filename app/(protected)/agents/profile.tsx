@@ -10,7 +10,6 @@ import {
   User,
   Wallet,
 } from "phosphor-react-native";
-import { Fragment } from "react";
 import {
   ScrollView,
   Text,
@@ -29,6 +28,7 @@ export default function Profile() {
   const router = useRouter();
   const userString = SecureStore.getItem("user_info");
   const userInfo = JSON.parse(userString!);
+
   const set_avoid_redirect = useSetAtom(avoid_redirect_to_agent);
 
   return (
@@ -117,45 +117,42 @@ export default function Profile() {
               color={theme.color.appTextPrimary}
             />
           </TouchableOpacity>
-          {userString && userString!.includes('"user_type":"host"') && (
-            <Fragment>
-              <View
-                style={{
-                  height: 1,
-                  backgroundColor: theme.color.elementsTextFieldBorder,
-                  width: "100%",
-                  borderRadius: 999,
-                  opacity: 0.5,
-                }}
-              />
-              <TouchableOpacity
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 32 - 16,
-                  backgroundColor: "#0077FF1A",
-                  alignSelf: "flex-start",
-                }}
-                onPress={() => {
-                  set_avoid_redirect(false);
-                  // @ts-expect-error typescript be like that
-                  router.replace({ pathname: "/agents" });
-                }}
-              >
-                <Text
-                  style={{
-                    ...theme.fontStyles.medium,
-                    lineHeight: 20,
-                    color: theme.color.appTextAccent,
-                  }}
-                >
-                  Switch to host
-                </Text>
-              </TouchableOpacity>
-            </Fragment>
-          )}
+          <View
+            style={{
+              height: 1,
+              backgroundColor: theme.color.elementsTextFieldBorder,
+              width: "100%",
+              borderRadius: 999,
+              opacity: 0.5,
+            }}
+          />
+          <TouchableOpacity
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 32 - 16,
+              backgroundColor: "#0077FF1A",
+              alignSelf: "flex-start",
+            }}
+            onPress={() => {
+              set_avoid_redirect(true);
+              router.replace({
+                pathname: "/",
+              });
+            }}
+          >
+            <Text
+              style={{
+                ...theme.fontStyles.medium,
+                lineHeight: 20,
+                color: theme.color.appTextAccent,
+              }}
+            >
+              Switch to guest
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <Text

@@ -16,7 +16,7 @@ import {
 import * as NavigationBar from "expo-navigation-bar";
 import * as Network from "expo-network";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Platform, View, useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -30,6 +30,8 @@ import { appearanceAtom, useTheme } from "@/hooks/useTheme";
 import "react-native-reanimated";
 import "expo-dev-client";
 import { jwtAtom, loadJWT } from "@/utils/jwt";
+import { useServerWarmup } from "@/utils/serverWarmup";
+import ServerWarmupOverlay from "@/components/ServerWarmupOverlay";
 
 onlineManager.setEventListener((setOnline) => {
   const eventSubscription = Network.addNetworkStateListener((state) => {
@@ -45,6 +47,13 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   const colorScheme = useAtomValue(appearanceAtom);
   const theme = useTheme();
+  const { status, isReady, checkServer, warmupServerManually } = useServerWarmup();
+  
+  // Check server status on app initialization
+  useEffect(() => {
+    // Attempt to warm up the server when the app starts
+    checkServer();
+  }, []);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -71,6 +80,12 @@ export default function RootLayout() {
                       backgroundColor: theme.color.appBackground,
                     },
                   }}
+                />
+                
+                {/* Server warmup overlay */}
+                <ServerWarmupOverlay 
+                  status={status} 
+                  onRetry={warmupServerManually} 
                 />
               </View>
 

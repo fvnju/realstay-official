@@ -1,0 +1,65 @@
+# RealStay Codebase Summary
+
+## Project Overview
+RealStay is a mobile application built with React Native and Expo for property listing and rental. The app allows users to browse real estate listings, search for properties, save favorites, and communicate with property owners or agents.
+
+## Technology Stack
+- **Framework**: React Native with Expo
+- **Navigation**: Expo Router with file-based routing
+- **State Management**: Jotai for global state and React Query for data fetching
+- **UI Components**: Custom components and Expo components
+- **Styling**: React Native StyleSheet with a theme system
+- **API Integration**: REST API with fetch
+- **Authentication**: JWT-based authentication
+
+## Project Structure
+- **/app**: Main application code with file-based routing
+  - **(protected)**: Routes that require authentication
+    - **(tabs)**: Bottom tab navigation screens
+      - **index.tsx**: Home screen with property listings
+      - **chats**: Messaging functionality
+      - **history.tsx**: User's activity history
+      - **profile.tsx**: User profile information
+      - **saved.tsx**: Saved/bookmarked properties
+  - **email.tsx, createPassword.tsx, enterPassword.tsx**: Authentication flow
+  - **onboarding.tsx**: User onboarding experience
+
+- **/components**: Reusable UI components
+  - **Button**: Various button components
+  - **ListingCard.tsx**: Property listing card component
+  - **TextField.tsx**: Input field component
+  - **sheet.tsx**: Bottom sheet component for modals
+
+- **/constants**: Application constants
+  - **endpoint.ts**: API endpoint configuration
+  - **themes.ts**: Theme definitions and styling constants
+
+- **/utils**: Utility functions
+  - **jwt.ts**: JWT handling utilities
+
+## Key Features
+1. **Authentication**: Email-based authentication with password creation/login
+2. **Property Listings**: Display of property listings with images, location, price, and ratings
+3. **Search Functionality**: Property search with location-based filtering
+4. **Saved Properties**: Ability to bookmark and save favorite properties
+5. **Messaging**: Chat functionality to communicate with property owners/agents
+6. **User Profiles**: User account management and profile information
+
+## UI/UX Design
+- Modern UI with custom components
+- Theme system for consistent styling
+- Responsive design for various device sizes
+- Bottom sheet interactions for search and filters
+- Animated components for enhanced user experience
+
+## Backend Integration
+- REST API integration with the endpoint at "https://real-stay-api.onrender.com"
+- JWT token-based authentication for secure API access
+- Secure storage for user credentials and tokens
+
+## Development Setup
+1. Install dependencies: `npm install`
+2. Start the app: `npx expo start`
+3. Run on Android: `npm run android`
+4. Run on iOS: `npm run ios`
+5. Run on web: `npm run web`

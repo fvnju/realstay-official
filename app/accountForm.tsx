@@ -1,17 +1,10 @@
-import { fetch } from "expo/fetch";
 import Checkbox from "expo-checkbox";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { fetch } from "expo/fetch";
 import { useAtomValue } from "jotai";
-import { CaretDown, Check } from "phosphor-react-native";
-import React, { useEffect, useRef, useState } from "react";
-import {
-  Text,
-  TouchableOpacity,
-  View,
-  StyleSheet,
-  Pressable,
-  TextInput,
-} from "react-native";
+import { CaretDown } from "phosphor-react-native";
+import React, { useRef, useState } from "react";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import z from "zod";
 
@@ -31,7 +24,7 @@ const nameValidator = z
   .max(50, "Name must be less than 50 characters")
   .regex(
     /^[a-zA-Z\s-]+$/,
-    "Name can only contain letters, spaces, and hyphens",
+    "Name can only contain letters, spaces, and hyphens"
   );
 
 // Nigerian phone number validator
@@ -65,7 +58,7 @@ const nigerianPhoneValidator = z
   })
   .refine(
     (val) => val.length === 13 && val.startsWith("234"),
-    "Phone number must be a valid Nigerian number",
+    "Phone number must be a valid Nigerian number"
   );
 
 export default function AccountForm() {
@@ -116,9 +109,10 @@ export default function AccountForm() {
     const result = await resp.json();
 
     if (resp.status === 201) {
-      // @ts-expect-error it exists
+      toast.success("Account created!");
       router.dismissTo({ pathname: "/email" });
     } else {
+      toast.error("Something went wrong...");
     }
     console.log(resp.status);
     console.log(result);

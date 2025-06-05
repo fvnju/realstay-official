@@ -1,7 +1,6 @@
-import { fetch } from "expo/fetch";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { SymbolView } from "expo-symbols";
-import React, { useCallback, useRef, useState } from "react";
+import { fetch } from "expo/fetch";
+import React, { useRef, useState } from "react";
 import {
   Keyboard,
   Text,
@@ -16,8 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "@/components/Button/Primary";
 import TextField from "@/components/TextField";
-import { useTheme } from "@/hooks/useTheme";
 import ENDPOINT from "@/constants/endpoint";
+import { useTheme } from "@/hooks/useTheme";
 import * as SecureStore from "expo-secure-store";
 import { toast } from "sonner-native";
 
@@ -45,6 +44,20 @@ export default function EnterPassword() {
   const { top, bottom } = useSafeAreaInsets();
   const setJWT = useSetAtom(jwtAtom);
 
+  const findUserType = async (id: string, token: string) => {
+    const resp = await fetch(`${ENDPOINT}/users/${id}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "*/*",
+        "Content-Type": "application/json",
+        "User-Agent": "RealStayApp",
+      },
+    });
+    const result = await resp.json();
+    return await result.user_type;
+  };
+
   const loginToAccount = async () => {
     toast.dismiss();
     const loading_id = toast.loading("loading...");
@@ -64,15 +77,31 @@ export default function EnterPassword() {
     toast.dismiss(loading_id);
     if (resp.status === 201) {
       saveJWT(result["access_token"], setJWT);
-      await SecureStore.setItemAsync("user_info", JSON.stringify(result.user));
-      // TODO: account type later
-      router.replace({ pathname: "/" });
+
+      const userType = await findUserType(
+        result.user.id,
+        result["access_token"]
+      );
+
+      await SecureStore.setItemAsync(
+        "user_info",
+        JSON.stringify({ ...result.user, user_type: userType })
+      );
+      if (userType === "host") {
+        router.push({ pathname: "/enterHost" });
+      } else {
+        while (router.canGoBack()) {
+          router.back();
+        }
+        router.replace({ pathname: "/" });
+      }
     } else if (resp.status === 401) {
       toast.error(result.message);
     } else {
       toast.error("Something went wrong!");
     }
   };
+  const theme = useTheme();
 
   return (
     <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
@@ -93,6 +122,7 @@ export default function EnterPassword() {
             headerTitle: () => <></>,
             headerShown: true,
             headerBackTitle: "Go back",
+
             headerStyle: {
               backgroundColor: background.backgroundColor?.toString(),
             },
@@ -187,7 +217,7 @@ const styleSheet = (): { [key: string]: ViewStyle & TextStyle } => {
       color: theme.color.appTextSecondary,
     },
     heading: {
-      ...theme.fontStyles.semiBold,
+      ...theme.fontStyles.bold,
       fontSize: theme.fontSizes.xl_4,
       lineHeight: theme.fontSizes.xl_4 + 6,
       color: theme.color.appTextPrimary,

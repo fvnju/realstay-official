@@ -1,19 +1,28 @@
+import { useTheme } from "@/hooks/useTheme";
 import {
   Binoculars,
   BookmarksSimple,
   ChatCentered,
   GlobeHemisphereEast,
+  House,
+  ListDashes,
   UserCircle,
 } from "phosphor-react-native";
 import { useCallback } from "react";
 import { StyleSheet, View } from "react-native";
-import { useTheme } from "@/hooks/useTheme";
 
 export default function TabBarIcon(props: {
   focused: boolean;
   color: string;
   size: number;
-  name?: "explore" | "saved" | "history" | "chats" | "profile";
+  name?:
+    | "explore"
+    | "saved"
+    | "history"
+    | "chats"
+    | "profile"
+    | "dashboard"
+    | "listings";
 }) {
   const theme = useTheme();
   const styles = {
@@ -37,6 +46,10 @@ export default function TabBarIcon(props: {
         return <ChatCentered size={props.size} color={color} />;
       case "profile":
         return <UserCircle size={props.size} color={color} />;
+      case "dashboard":
+        return <House size={props.size} color={color} />;
+      case "listings":
+        return <ListDashes size={props.size} color={color} />;
 
       default:
         break;

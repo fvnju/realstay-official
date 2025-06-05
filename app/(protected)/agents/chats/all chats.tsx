@@ -1,10 +1,11 @@
 import ENDPOINT from "@/constants/endpoint";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { useRouter } from "expo-router";
+import { router, useRouter } from "expo-router";
 import { fetch } from "expo/fetch";
 import { useAtomValue } from "jotai";
 import { Checks } from "phosphor-react-native";
+import { useEffect } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 import { useTheme } from "@/hooks/useTheme";
@@ -115,6 +116,14 @@ export default function Chats() {
   }
 
   if (error) {
+    useEffect(() => {
+      const timeout = setTimeout(() => {
+        router.dismissTo("/email");
+      }, 1000);
+      return () => {
+        clearTimeout(timeout);
+      };
+    }, []);
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Text>Error: {error.message}</Text>

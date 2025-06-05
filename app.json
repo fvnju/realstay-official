@@ -1,42 +1,44 @@
 {
   "expo": {
-    "name": "realstay",
-    "slug": "realstay",
-    "version": "0.1.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "realstay",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.favournj.realstay",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
-    },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.favour_nj.realstay"
     },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+    "experiments": {
+      "typedRoutes": true
     },
+    "extra": {
+      "eas": {
+        "projectId": "56f5452c-56fe-4e31-9313-21bcd20a16df"
+      },
+      "router": {}
+    },
+    "icon": "./assets/images/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.favournj.realstay",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "supportsTablet": false,
+      "usesIcloudStorage": true
+    },
+    "name": "realstay",
+    "newArchEnabled": true,
+    "orientation": "portrait",
+    "owner": "favour_nj",
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
+          "backgroundColor": "#ffffff",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "resizeMode": "contain"
         }
       ],
       [
@@ -53,15 +55,31 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
+      ],
       "expo-web-browser",
       [
         "expo-font",
         {
-          "fonts": [],
           "android": {
             "fonts": [
               {
-                "fontFamily": "Figtree",
                 "fontDefinitions": [
                   {
                     "path": "./assets/fonts/figtree_bold.ttf",
@@ -79,10 +97,12 @@
                     "path": "./assets/fonts/figtree_regular.ttf",
                     "weight": 400
                   }
-                ]
+                ],
+                "fontFamily": "Figtree"
               }
             ]
           },
+          "fonts": [],
           "ios": {
             "fonts": [
               "./assets/fonts/figtree_bold.ttf",
@@ -94,15 +114,14 @@
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "56f5452c-56fe-4e31-9313-21bcd20a16df"
-      }
-    },
-    "owner": "favour_nj"
+    "scheme": "realstay",
+    "slug": "realstay",
+    "userInterfaceStyle": "automatic",
+    "version": "0.1.0",
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/images/favicon.png",
+      "output": "static"
+    }
   }
 }

@@ -1,22 +1,13 @@
 import TabBarIcon from "@/components/TabBarIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { useFocusEffect } from "@react-navigation/native";
-import { Redirect, Stack, Tabs } from "expo-router";
-import * as SecureStore from "expo-secure-store";
-import { useAtomValue } from "jotai";
+import { Stack, Tabs } from "expo-router";
 import React from "react";
-import {
-  BackHandler,
-  Dimensions,
-  Platform,
-  Pressable,
-  StyleSheet,
-} from "react-native";
+import { BackHandler, Dimensions, Pressable, StyleSheet } from "react-native";
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { avoid_redirect_to_agent } from "../_layout";
 
 export default function Layout() {
   // const [nothing, setNothing] = useState(0);
@@ -24,25 +15,13 @@ export default function Layout() {
   // 	setNothing((prev) => prev + 1);
   // }, []);
   const styles = styleSheet();
-  const screens = ["explore", "saved", "history", "chats", "profile"] as const;
+  const screens = ["dashboard", "listings", "chats", "profile"] as const;
 
   const { bottom } = useSafeAreaInsets();
   const theme = useTheme();
 
   // Add platform-specific tab bar height
   const tabBarHeight = 100; // Platform.OS === "android" ? 80 : 100;
-
-  const avoid_redirect = useAtomValue(avoid_redirect_to_agent);
-
-  const jsonString = SecureStore.getItem("user_info");
-  if (
-    jsonString &&
-    jsonString.includes('"user_type":"host"') &&
-    !avoid_redirect
-  ) {
-    // @ts-expect-error - The path is valid but TypeScript doesn't know about it
-    return <Redirect href={"/agents"} />;
-  }
 
   useFocusEffect(
     React.useCallback(() => {
@@ -70,6 +49,7 @@ export default function Layout() {
           contentStyle: {
             backgroundColor: theme.color.appBackground,
           },
+          headerShown: false,
         }}
       />
 
@@ -83,7 +63,7 @@ export default function Layout() {
               height: tabBarHeight,
               elevation: 0,
               paddingTop: 20,
-              paddingBottom: Platform.OS === "android" ? bottom : 0,
+              paddingBottom: 0, // Platform.OS === "android" ? bottom : 0,
               paddingHorizontal: 12,
             },
           ],
@@ -116,7 +96,7 @@ export default function Layout() {
         {screens.map((value) => (
           <Tabs.Screen
             key={`guest-${value}`}
-            name={value === "explore" ? "index" : value}
+            name={value === "dashboard" ? "index" : value}
             options={{
               title: toTitleCase(value),
               tabBarIcon(props) {

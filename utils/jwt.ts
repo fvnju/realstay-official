@@ -1,7 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { atom } from "jotai";
 
-export const jwtAtom = atom<string | null>(null);
+export const jwtAtom = atom<string | null>(SecureStore.getItem("access_token"));
 
 export async function saveJWT(
   token: string,

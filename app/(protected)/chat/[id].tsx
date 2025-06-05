@@ -303,6 +303,9 @@ export default function ChatPage() {
     >
       <Stack.Screen
         options={{
+          contentStyle: {
+            backgroundColor: theme.color.appBackground,
+          },
           headerShown: true,
           headerStyle: { backgroundColor: theme.color.appBackground },
           header(props) {
@@ -316,6 +319,7 @@ export default function ChatPage() {
                   borderBottomWidth: 1,
                   borderBottomColor: theme.color.elementsTextFieldBorder,
                   paddingBottom: 12,
+                  backgroundColor: theme.color.appBackground,
                 }}
               >
                 <TouchableOpacity
