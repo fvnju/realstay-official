@@ -1,10 +1,9 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { fetch } from "expo/fetch";
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Keyboard,
   Text,
-  type TextInput,
   type TextStyle,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -27,21 +26,11 @@ export default function EnterPassword() {
   const { email } = useLocalSearchParams();
   const router = useRouter();
   const styles = styleSheet();
-  const {
-    background,
-    text,
-    text_2,
-    heading,
-    _email_,
-    policyText,
-    links,
-    disabled,
-  } = styles;
-  const isTargetTextInput = useRef(false);
-  const textFieldRef = useRef<TextInput>(null);
+  const { background, text, text_2, heading, policyText, links, disabled } =
+    styles;
 
   const [_password, _setPassword] = useState("");
-  const { top, bottom } = useSafeAreaInsets();
+  const { bottom } = useSafeAreaInsets();
   const setJWT = useSetAtom(jwtAtom);
 
   const findUserType = async (id: string, token: string) => {
@@ -55,7 +44,8 @@ export default function EnterPassword() {
       },
     });
     const result = await resp.json();
-    return await result.user_type;
+    // console.log(`user_type ${JSON.stringify(result)}`);
+    return await result.user.user_type;
   };
 
   const loginToAccount = async () => {
@@ -88,7 +78,7 @@ export default function EnterPassword() {
         JSON.stringify({ ...result.user, user_type: userType })
       );
       if (userType === "host") {
-        router.push({ pathname: "/enterHost" });
+        router.replace({ pathname: "/enterHost" });
       } else {
         while (router.canGoBack()) {
           router.back();

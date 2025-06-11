@@ -43,8 +43,8 @@ async function getUserDetails(token: string, id: string): Promise<UserDetails> {
     );
   }
 
-  const data: UserDetails = await response.json();
-  return data;
+  const data = await response.json();
+  return data.user as UserDetails;
 }
 
 interface ChatRoom {

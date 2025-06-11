@@ -1,11 +1,13 @@
 import { useTheme } from "@/hooks/useTheme";
 import { apiRequest } from "@/utils/apiClient";
+import dayjs from "dayjs";
 import { Stack, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { CaretLeft, WarningCircle } from "phosphor-react-native";
+import { CaretLeft, PencilSimple, WarningCircle } from "phosphor-react-native";
 import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ContextMenu from "zeego/context-menu";
 
 export default function ProfilePage() {
   const theme = useTheme();
@@ -13,17 +15,16 @@ export default function ProfilePage() {
   const router = useRouter();
   const userString = SecureStore.getItem("user_info");
   const userInfo = JSON.parse(userString!);
-  const [userInfo_fresh, setUserInfo_fresh] = useState<any | null>(null);
+  const [userInfo_fresh, setUserInfo_fresh] = useState<any | "">("");
 
   useEffect(() => {
     (async () => {
       const networkData = await apiRequest(`/users/${userInfo["id"]}`, {
         requiresAuth: true,
       });
-      setUserInfo_fresh(networkData.data);
+      setUserInfo_fresh((networkData.data as any).user);
       if (networkData.status === 401) {
         await SecureStore.deleteItemAsync("access_token").then(() => {
-          // @ts-ignore
           router.dismissTo({ pathname: "/email" });
         });
       }
@@ -73,15 +74,27 @@ export default function ProfilePage() {
           elevation: 6,
         }}
       >
-        <View
-          style={{
-            backgroundColor: "red",
-            borderRadius: 999,
-            width: 8 * 11,
-            aspectRatio: 1,
-            marginBottom: 8,
-          }}
-        />
+        <View style={{ position: "relative" }}>
+          <View
+            style={{
+              backgroundColor: "red",
+              borderRadius: 999,
+              width: 8 * 11,
+              aspectRatio: 1,
+              marginBottom: 8,
+            }}
+          />
+          <PencilSimple
+            style={{
+              position: "absolute",
+              bottom: 0,
+              right: 0,
+              backgroundColor: theme.color.appImageShade,
+              aspectRatio: 1,
+              borderRadius: 999,
+            }}
+          />
+        </View>
         <Text
           style={{
             ...theme.fontStyles.bold,
@@ -100,25 +113,50 @@ export default function ProfilePage() {
         </Text>
       </View>
 
-      <Text
+      <View
         style={{
-          ...theme.fontStyles.semiBold,
-          fontSize: theme.fontSizes.base,
-          color: theme.color.appTextPrimary,
-          marginTop: 32,
+          flexDirection: "row",
+          alignItems: "center",
+          marginTop: 32 - 4,
         }}
       >
-        Created on:{" "}
         <Text
           style={{
-            fontWeight: 400,
+            ...theme.fontStyles.semiBold,
             fontSize: theme.fontSizes.base,
-            textDecorationLine: "underline",
+            color: theme.color.appTextPrimary,
           }}
         >
-          {userInfo_fresh === null ? "unknown" : userInfo_fresh.createdAt}
+          Created on:
         </Text>
-      </Text>
+        <ContextMenu.Root>
+          <ContextMenu.Trigger>
+            <Text
+              style={[
+                theme.fontStyles.regular,
+                {
+                  fontWeight: 400,
+                  fontSize: theme.fontSizes.base,
+                  textDecorationLine: "underline",
+                  color: theme.color.appTextPrimary,
+                  backgroundColor: theme.color.appBackground,
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                },
+              ]}
+            >
+              {userInfo_fresh === "" ? "unknown" : userInfo_fresh.createdAt}
+            </Text>
+          </ContextMenu.Trigger>
+          <ContextMenu.Content>
+            <ContextMenu.Item key="formated date">{`${dayjs(
+              userInfo_fresh.createdAt
+            ).format("DD/MM/YYYY")} · ${dayjs(userInfo_fresh.createdAt).format(
+              "h:mm A"
+            )}`}</ContextMenu.Item>
+          </ContextMenu.Content>
+        </ContextMenu.Root>
+      </View>
 
       {/* Report Button for different user */}
       {false && (

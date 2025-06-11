@@ -5,7 +5,6 @@ import { router, useRouter } from "expo-router";
 import { fetch } from "expo/fetch";
 import { useAtomValue } from "jotai";
 import { Checks } from "phosphor-react-native";
-import { useEffect } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 import { useTheme } from "@/hooks/useTheme";
@@ -44,8 +43,8 @@ async function getUserDetails(token: string, id: string): Promise<UserDetails> {
     );
   }
 
-  const data: UserDetails = await response.json();
-  return data;
+  const data = await response.json();
+  return data.user as UserDetails;
 }
 
 interface ChatRoom {
@@ -116,14 +115,10 @@ export default function Chats() {
   }
 
   if (error) {
-    useEffect(() => {
-      const timeout = setTimeout(() => {
-        router.dismissTo("/email");
-      }, 1000);
-      return () => {
-        clearTimeout(timeout);
-      };
-    }, []);
+    setTimeout(() => {
+      router.dismissTo("/email");
+    }, 2000);
+
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Text>Error: {error.message}</Text>

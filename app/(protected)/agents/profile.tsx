@@ -74,7 +74,6 @@ export default function Profile() {
         >
           <TouchableOpacity
             onPress={() => {
-              // @ts-expect-error folder
               router.push({ pathname: "/profilePage" });
             }}
             style={{ flexDirection: "row", alignItems: "center", gap: 16 }}
@@ -199,7 +198,6 @@ export default function Profile() {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              // @ts-expect-error idk for expo router
               router.push("/appearance");
             }}
             style={{
@@ -233,7 +231,6 @@ export default function Profile() {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              // @ts-expect-error idk for expo router
               router.push("/paymentsAndBilling");
             }}
             style={{
@@ -267,7 +264,6 @@ export default function Profile() {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              // @ts-expect-error dont need index
               router.push("/loginAndSecurity");
             }}
             style={{

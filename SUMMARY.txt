@@ -62,4 +62,3 @@ RealStay is a mobile application built with React Native and Expo for property l
 2. Start the app: `npx expo start`
 3. Run on Android: `npm run android`
 4. Run on iOS: `npm run ios`
-5. Run on web: `npm run web`

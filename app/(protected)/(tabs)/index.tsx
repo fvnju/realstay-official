@@ -1,25 +1,26 @@
-import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
+import { router, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 
 import ListingCard from "@/components/ListingCard";
 import TextField from "@/components/TextField";
 import { Sheet, useSheetRef } from "@/components/sheet";
+import { useDebouncedEffect } from "@/hooks/useDebouncedEffect";
 import { useTheme } from "@/hooks/useTheme";
-import { get } from "@/utils/apiClient";
+import { apiRequest, get } from "@/utils/apiClient";
 import { useServerWarmup } from "@/utils/serverWarmup";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
-import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { ArrowLeft, MagnifyingGlass } from "phosphor-react-native";
-import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Keyboard,
   KeyboardAvoidingView,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -140,6 +141,24 @@ const GuestApp = ({ usersName }: { usersName: string }) => {
     }
   }, [status]);
 
+  const [search, setSearch] = useState("");
+  const searchRef = useRef<TextInput>(null);
+  const [searchListings, setSearchListings] = useState([]);
+  useDebouncedEffect(
+    () => {
+      if (search.length > 0) {
+        apiRequest("/listing", { requiresAuth: true }).then((val) => {
+          setSearchListings((val.data as any).listings as []);
+          if (((val.data as any).listings as []).length === 0) {
+            toast.error("Nothing showed up!");
+          }
+        });
+      }
+    },
+    500,
+    [search]
+  );
+
   return (
     <View
       style={[
@@ -246,52 +265,83 @@ const GuestApp = ({ usersName }: { usersName: string }) => {
           }}
         >
           <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <TouchableOpacity
-                style={{
-                  height: 48,
-                  width: 48 + 24,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  paddingLeft: 24,
-                }}
-                onPress={() => {
-                  sheetRef.current?.dismiss();
-                }}
-              >
-                <ArrowLeft
-                  weight="bold"
-                  size={28}
-                  color={theme.color.appTextPrimary}
+            <KeyboardAvoidingView behavior="height" style={{ flex: 1 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <TouchableOpacity
+                  style={{
+                    height: 48,
+                    width: 48 + 24,
+                    alignItems: "center",
+                    flexDirection: "row",
+                    paddingLeft: 24,
+                  }}
+                  onPress={() => {
+                    sheetRef.current?.dismiss();
+                  }}
+                >
+                  <ArrowLeft
+                    weight="bold"
+                    size={28}
+                    color={theme.color.appTextPrimary}
+                  />
+                </TouchableOpacity>
+                <Text
+                  style={{
+                    ...theme.fontStyles.semiBold,
+                    fontSize: theme.fontSizes.xl_4,
+                    color: theme.color.appTextPrimary,
+                    letterSpacing:
+                      theme.letterSpacing.tight * theme.fontSizes.xl_4,
+                  }}
+                >
+                  Where to?
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <FlatList
+                  scrollEnabled
+                  centerContent
+                  data={searchListings}
+                  renderItem={({ item, index }) => {
+                    return <Text>{String(item) + index.toString()}</Text>;
+                  }}
+                  ListEmptyComponent={
+                    <Text
+                      style={[
+                        {
+                          fontSize: 14,
+                          color: theme.color.appTextPrimary,
+                          textAlign: "center",
+                        },
+                        theme.fontStyles.regular,
+                      ]}
+                    >
+                      Sorry, there&apos;s no listing like that
+                    </Text>
+                  }
                 />
-              </TouchableOpacity>
-              <Text
+              </View>
+              <View
                 style={{
-                  ...theme.fontStyles.medium,
-                  fontSize: theme.fontSizes.xl_4,
-                  color: theme.color.appTextPrimary,
-                  letterSpacing:
-                    theme.letterSpacing.tight * theme.fontSizes.xl_4,
+                  justifyContent: "flex-end",
+                  paddingBottom: bottom + 32,
+                  paddingHorizontal: 24,
                 }}
               >
-                Where to?
-              </Text>
-            </View>
-            <KeyboardAvoidingView
-              style={{
-                flex: 1,
-                justifyContent: "flex-end",
-                paddingBottom: bottom + 32,
-                paddingHorizontal: 24,
-              }}
-              behavior="height"
-            >
-              <TextField
-                autoFocus
-                placeholder="Tap to search..."
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+                <TextField
+                  ref={searchRef}
+                  autoFocus
+                  placeholder="Tap to search..."
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  onChangeText={setSearch}
+                  stateValue={search}
+                  clearFunc={() => {
+                    setSearch("");
+                    searchRef.current?.clear();
+                  }}
+                />
+              </View>
             </KeyboardAvoidingView>
           </Pressable>
         </BottomSheetView>
@@ -341,7 +391,6 @@ const GuestApp = ({ usersName }: { usersName: string }) => {
               key={`listitem-${index}`}
               onPress={() => {
                 router.push({
-                  // @ts-expect-error typescript stuff
                   pathname: "/listing",
                   params: { demoNumber: (index + 1).toString() },
                 });

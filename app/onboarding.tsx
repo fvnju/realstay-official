@@ -1,27 +1,29 @@
-import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
-import * as Haptics from "expo-haptics";
-import { Image } from "expo-image";
-import { Link, Stack } from "expo-router";
-import { SymbolView } from "expo-symbols";
-import * as WebBrowser from "expo-web-browser";
-import React, { useEffect } from "react";
-import {
-  ActionSheetIOS,
-  Button,
-  Platform,
-  Text,
-  type TextStyle,
-  TouchableOpacity,
-  View,
-  useColorScheme,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OAuthButtons from "@/components/Button/OAuthButtons";
 import { PrimaryButton } from "@/components/Button/Primary";
 import { ShowcaseView } from "@/components/Marquee";
 import { Sheet, useSheetRef } from "@/components/sheet";
 import { useTheme } from "@/hooks/useTheme";
+import { BottomSheetView } from "@gorhom/bottom-sheet";
+import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
+import { Link, Stack } from "expo-router";
+import { SymbolView } from "expo-symbols";
+import * as WebBrowser from "expo-web-browser";
 import { HandWaving } from "phosphor-react-native";
+import React from "react";
+import {
+  Dimensions,
+  Platform,
+  Text,
+  type TextStyle,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const { width } = Dimensions.get("window");
+const _itemWidth = 0.62 * width;
+const _itemHeight = (_itemWidth * 9) / 16;
 
 export default function Home() {
   const theme = useTheme();
@@ -73,7 +75,25 @@ export default function Home() {
 
         <View style={{ flex: 1 }} />
 
-        {Platform.select({ ios: <ShowcaseView />, android: null })}
+        {Platform.select({
+          ios: <ShowcaseView />,
+          android: (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 24,
+                overflow: "hidden",
+              }}
+            >
+              <Image
+                source={"house1"}
+                style={{ height: _itemHeight, width: _itemWidth }}
+              />
+            </View>
+          ),
+        })}
       </View>
       <View style={{ paddingHorizontal: 8 * 3, height: "50%" }}>
         <Text style={[styles.title as TextStyle, { marginTop: 16 }]}>
@@ -118,7 +138,7 @@ export default function Home() {
                   justifyContent: "center",
                 }}
               >
-                {/* <HandWaving
+                <HandWaving
                   color={styles.icon.backgroundColor}
                   size={12}
                   style={{
@@ -126,7 +146,7 @@ export default function Home() {
                     alignSelf: "center",
                     justifyContent: "center",
                   }}
-                /> */}
+                />
               </View>
             ),
           })}

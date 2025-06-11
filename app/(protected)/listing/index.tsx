@@ -11,7 +11,7 @@ export default function Listing() {
   const theme = useTheme();
   const { demoNumber } = useLocalSearchParams();
   const { top, bottom } = useSafeAreaInsets();
-  const isDemo = demoNumber.length > 0;
+  const isDemo = demoNumber !== undefined ? demoNumber.length > 0 : false;
   const router = useRouter();
 
   return (
@@ -29,7 +29,7 @@ export default function Listing() {
         >
           <Image
             style={{ flex: 1, borderRadius: 32 }}
-            source={{ uri: isDemo ? `house${demoNumber}` : "" }}
+            source={{ uri: isDemo ? `house${demoNumber}` : "house1" }}
             contentFit="cover"
           />
           <TouchableOpacity

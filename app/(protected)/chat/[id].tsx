@@ -1,35 +1,39 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetch } from "expo/fetch";
-import { Image } from "expo-image";
+import * as DocumentPicker from "expo-document-picker";
+import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { fetch } from "expo/fetch";
 import { useAtomValue } from "jotai";
 import {
   CaretLeft,
   DotsThreeVertical,
   LinkSimple,
   PaperPlaneTilt,
-  Copy,
-  Trash,
+  X,
 } from "phosphor-react-native";
-import React, { useEffect, useRef, useState, useCallback, memo } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  KeyboardAvoidingView,
   FlatList,
-  Modal,
-  Pressable,
+  KeyboardAvoidingView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
-import { BlurView } from "expo-blur";
+import * as DropdownMenu from "zeego/dropdown-menu";
 
 import ENDPOINT from "@/constants/endpoint";
 import { useSocketRef } from "@/hooks/useSocket";
-import { useTheme, useThemeType } from "@/hooks/useTheme";
+import { useTheme } from "@/hooks/useTheme";
 import { jwtAtom } from "@/utils/jwt";
+
+import ProgressCircle from "@/components/ProgressCircle";
+import dayjs from "dayjs";
+import { Image } from "expo-image";
+import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
+import * as ContextMenu from "zeego/context-menu";
 
 interface ChatSocketResponse {
   __v?: number;
@@ -46,7 +50,7 @@ interface ChatSocketResponse {
 
 async function getAllMessages(
   token: string,
-  id: string,
+  id: string
 ): Promise<ChatSocketResponse[]> {
   const response = await fetch(`${ENDPOINT}/chat/messages/${id}`, {
     method: "GET",
@@ -59,7 +63,9 @@ async function getAllMessages(
 
   if (!response.ok) {
     throw new Error(
-      `HTTP error! status: ${response.status}. ${JSON.stringify(await response.json())}`,
+      `HTTP error! status: ${response.status}. ${JSON.stringify(
+        await response.json()
+      )}`
     );
   }
 
@@ -94,12 +100,14 @@ async function getUserDetails(token: string, id: string): Promise<UserDetails> {
 
   if (!response.ok) {
     throw new Error(
-      `HTTP error! status: ${response.status}. ${JSON.stringify(await response.json())}`,
+      `HTTP error! status: ${response.status}. ${JSON.stringify(
+        await response.json()
+      )}`
     );
   }
 
-  const data: UserDetails = await response.json();
-  return data;
+  const data = await response.json();
+  return data.user as UserDetails;
 }
 
 interface MenuItem {
@@ -107,94 +115,6 @@ interface MenuItem {
   label: string;
   onPress: () => void;
   destructive?: boolean;
-}
-
-function ChatBubbleMenu({
-  visible,
-  onClose,
-  onCopy,
-  onDelete,
-  theme,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onCopy: () => void;
-  onDelete: () => void;
-  theme: useThemeType;
-}) {
-  const { bottom: initialBottom } = useSafeAreaInsets();
-
-  const menuItems: MenuItem[] = [
-    {
-      icon: <Copy size={24} color={theme.color.appTextPrimary} />,
-      label: "Copy",
-      onPress: onCopy,
-    },
-    {
-      icon: <Trash size={24} color={theme.color.appTextDanger} />,
-      label: "Delete",
-      onPress: onDelete,
-      destructive: true,
-    },
-  ];
-
-  if (!visible) return null;
-
-  return (
-    <Modal transparent visible={visible} animationType="slide">
-      <Pressable style={{ flex: 1 }} onPress={onClose}>
-        <BlurView intensity={50} style={{ flex: 1 }}>
-          <View
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              backgroundColor: theme.color.appSurface,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              padding: 16,
-              paddingBottom: 16 + initialBottom,
-              gap: 8,
-            }}
-          >
-            {menuItems.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  item.onPress();
-                  onClose();
-                }}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  paddingVertical: 12,
-                  paddingHorizontal: 16,
-                  borderRadius: 12,
-                  backgroundColor: theme.color.appBackground,
-                }}
-              >
-                {item.icon}
-                <Text
-                  style={{
-                    color: item.destructive
-                      ? theme.color.appTextDanger
-                      : theme.color.appTextPrimary,
-                    ...theme.fontStyles.medium,
-                    fontSize: theme.fontSizes.base,
-                  }}
-                >
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </BlurView>
-      </Pressable>
-    </Modal>
-  );
 }
 
 export default function ChatPage() {
@@ -250,7 +170,7 @@ export default function ChatPage() {
         content: text.trim(),
         fileUrl: null,
         fileType: null,
-      }),
+      })
     );
 
     setMessages((prev) => [...prev, { content: text.trim() }]);
@@ -282,13 +202,46 @@ export default function ChatPage() {
   const renderItem = useCallback(
     ({ item, index }: { item: ChatSocketResponse; index: number }) => (
       <ChatBubble
+        time={item.timestamp?.toString() || ""}
         isLast={index === messages.length - 1}
         isSender={!(item["senderId"] === id)}
         content={item.content}
       />
     ),
-    [messages.length, id],
+    [messages.length, id]
   );
+
+  const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
+
+  const uploadProgress = useSharedValue(0);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      quality: 0.5,
+      allowsMultipleSelection: true,
+    });
+
+    // console.log(result);
+
+    if (!result.canceled) {
+      setImage(result.assets[0]);
+      uploadProgress.value = withTiming(1, {
+        duration: 800,
+        easing: Easing.linear,
+      });
+    }
+  };
+  const pickFile = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: false,
+    });
+
+    console.log(result);
+  };
+  const [cameraStatus, requestCameraPermission] =
+    ImagePicker.useCameraPermissions();
+  const [mediaStatus, requestMediaPermission] =
+    ImagePicker.useMediaLibraryPermissions();
 
   return (
     <KeyboardAvoidingView
@@ -383,66 +336,202 @@ export default function ChatPage() {
         windowSize={10}
       />
 
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 8,
-          paddingHorizontal: 8,
-          paddingTop: 8,
-        }}
-      >
-        <TouchableOpacity
+      <View>
+        {image && (
+          <View
+            style={{
+              marginLeft: 16 / 2,
+              flexDirection: "row",
+              position: "relative",
+              width: 120,
+              height: 120,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: theme.color.appSurface,
+              borderRadius: 12,
+              overflow: "hidden",
+            }}
+          >
+            <Image
+              source={{ uri: image.uri }}
+              style={{
+                height: 120,
+                width: (120 * image.width) / image.height,
+                opacity: 0.5,
+              }}
+            />
+
+            <TouchableOpacity
+              onPress={() => {
+                setImage(null);
+                uploadProgress.value = withTiming(0, {
+                  duration: 200,
+                  easing: Easing.linear,
+                });
+              }}
+              style={{
+                position: "absolute",
+                right: 4,
+                top: 4,
+                zIndex: 9,
+                width: 24,
+                height: 24,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: theme.color.appDropShadow,
+                borderRadius: 999,
+              }}
+            >
+              <X size={16} weight="bold" color={theme.color.appTextPrimary} />
+            </TouchableOpacity>
+            <View
+              style={{
+                position: "absolute",
+                width: 120,
+                height: 120,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ProgressCircle progress={uploadProgress} radius={12} />
+            </View>
+          </View>
+        )}
+        <View
           style={{
-            width: 44,
-            height: 44,
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
+            gap: 8,
+            paddingHorizontal: 8,
+            paddingTop: 8,
           }}
         >
-          <LinkSimple
-            color={theme.color.appTextPrimary}
-            weight="bold"
-            size={24}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger
+              asChild
+              style={{
+                width: 44,
+                height: 44,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  if (!cameraStatus?.granted) {
+                    requestCameraPermission();
+                  }
+                  if (!mediaStatus?.granted) {
+                    requestMediaPermission();
+                  }
+                }}
+              >
+                <LinkSimple
+                  color={theme.color.appTextPrimary}
+                  weight="bold"
+                  size={24}
+                />
+              </TouchableOpacity>
+            </DropdownMenu.Trigger>
+
+            <DropdownMenu.Content>
+              <DropdownMenu.Item key="add file" onSelect={pickFile}>
+                <DropdownMenu.ItemTitle>Files</DropdownMenu.ItemTitle>
+                <DropdownMenu.ItemIcon
+                  ios={{
+                    name: "folder",
+                    pointSize: 16,
+                    weight: "semibold",
+                    scale: "medium",
+                  }}
+                />
+              </DropdownMenu.Item>
+
+              <DropdownMenu.Separator />
+
+              <DropdownMenu.Item
+                key="use camera"
+                onSelect={() => {
+                  if (!cameraStatus?.granted) {
+                    requestCameraPermission();
+                  }
+                }}
+              >
+                <DropdownMenu.ItemTitle>Camera</DropdownMenu.ItemTitle>
+                <DropdownMenu.ItemIcon
+                  ios={{
+                    name: "camera",
+                    pointSize: 16,
+                    weight: "semibold",
+                    scale: "medium",
+                  }}
+                />
+              </DropdownMenu.Item>
+
+              <DropdownMenu.Separator />
+
+              <DropdownMenu.Item
+                key="add photo"
+                onSelect={() => {
+                  if (mediaStatus?.granted) {
+                    pickImage();
+                  } else {
+                    requestMediaPermission();
+                  }
+                }}
+              >
+                <DropdownMenu.ItemTitle>Photos</DropdownMenu.ItemTitle>
+                <DropdownMenu.ItemIcon
+                  ios={{
+                    name: "photo",
+                    pointSize: 16,
+                    weight: "semibold",
+                    scale: "medium",
+                  }}
+                />
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+
+          <TextInput
+            ref={textRef}
+            onChangeText={(val) => setText(val)}
+            onFocus={() => setBottom(8)}
+            onBlur={() => setBottom(initialBottom)}
+            style={{
+              flex: 1,
+              backgroundColor: theme.color.elementsTextFieldBackground,
+              borderRadius: 20,
+              height: 48,
+              borderWidth: 1,
+              borderColor: theme.color.elementsTextFieldBorder,
+              paddingHorizontal: 12,
+              ...theme.fontStyles.regular,
+              fontSize: theme.fontSizes.base,
+              color: theme.color.appTextPrimary,
+            }}
+            placeholder="Write a message"
+            placeholderTextColor={theme.color.appTextSecondary}
           />
-        </TouchableOpacity>
-        <TextInput
-          ref={textRef}
-          onChangeText={(val) => setText(val)}
-          onFocus={() => setBottom(8)}
-          onBlur={() => setBottom(initialBottom)}
-          style={{
-            flex: 1,
-            backgroundColor: theme.color.elementsTextFieldBackground,
-            borderRadius: 20,
-            height: 48,
-            borderWidth: 1,
-            borderColor: theme.color.elementsTextFieldBorder,
-            paddingHorizontal: 12,
-            ...theme.fontStyles.regular,
-            fontSize: theme.fontSizes.base,
-            color: theme.color.appTextPrimary,
-          }}
-          placeholder="Write a message"
-          placeholderTextColor={theme.color.appTextSecondary}
-        />
-        <TouchableOpacity
-          onPress={handleSend}
-          disabled={!text.trim()}
-          style={{
-            width: 44,
-            height: 44,
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: !text.trim() ? 0.5 : 1,
-          }}
-        >
-          <PaperPlaneTilt
-            color={theme.color.appTextAccent}
-            weight="bold"
-            size={24}
-          />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleSend}
+            disabled={!text.trim()}
+            style={{
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: !text.trim() ? 0.5 : 1,
+            }}
+          >
+            <PaperPlaneTilt
+              color={theme.color.appTextAccent}
+              weight="bold"
+              size={24}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -450,29 +539,24 @@ export default function ChatPage() {
 
 const ChatBubble = memo(function ChatBubble({
   content,
+  time,
   isSender = false,
   isLast = false,
 }: {
   content: string;
+  time: string;
   isSender?: boolean;
   isLast?: boolean;
 }) {
   const theme = useTheme();
-  const [menuVisible, setMenuVisible] = useState(false);
 
-  const handleLongPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setMenuVisible(true);
+  const handleLongPress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     // Implement copy functionality
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
-
-  const handleDelete = () => {
-    // Implement delete functionality
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   return (
@@ -497,37 +581,39 @@ const ChatBubble = memo(function ChatBubble({
             backgroundColor: "green",
           }}
         />
-        <View
-          style={{
-            backgroundColor: isSender
-              ? theme.color.appPrimary
-              : theme.color.appSurface,
-            maxWidth: "75%",
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            borderRadius: 20,
-          }}
-        >
-          <Text
-            style={{
-              color: isSender ? "#FFFFFF" : theme.color.appTextPrimary,
-              ...theme.fontStyles.regular,
-              fontSize: theme.fontSizes.base,
-              lineHeight: 24,
-            }}
-          >
-            {content}
-          </Text>
+        <View style={{ maxWidth: "75%", overflow: "hidden", borderRadius: 14 }}>
+          <ContextMenu.Root>
+            <ContextMenu.Trigger>
+              <Text
+                style={{
+                  // borderRadius: 16,
+                  backgroundColor: isSender
+                    ? theme.color.appPrimary
+                    : theme.color.appSurface,
+                  // maxWidth: "75%",
+                  color: isSender ? "#FFFFFF" : theme.color.appTextPrimary,
+                  ...theme.fontStyles.regular,
+                  fontSize: theme.fontSizes.base,
+                  lineHeight: 24,
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                }}
+              >
+                {content}
+              </Text>
+            </ContextMenu.Trigger>
+
+            <ContextMenu.Content>
+              <ContextMenu.Label>{`${dayjs(time).format(
+                "DD/MM/YYYY"
+              )} · ${dayjs(time).format("h:mm A")}`}</ContextMenu.Label>
+              <ContextMenu.Item key="copy message" onSelect={handleCopy}>
+                <ContextMenu.ItemTitle>Copy</ContextMenu.ItemTitle>
+              </ContextMenu.Item>
+            </ContextMenu.Content>
+          </ContextMenu.Root>
         </View>
       </TouchableOpacity>
-
-      <ChatBubbleMenu
-        visible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-        onCopy={handleCopy}
-        onDelete={handleDelete}
-        theme={theme}
-      />
     </>
   );
 });
