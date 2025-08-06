@@ -45,7 +45,7 @@ export default function EnterPassword() {
     });
     const result = await resp.json();
     // console.log(`user_type ${JSON.stringify(result)}`);
-    return await result.user.user_type;
+    return await result.data.user.user_type;
   };
 
   const loginToAccount = async () => {
@@ -65,17 +65,16 @@ export default function EnterPassword() {
     });
     const result = await resp.json();
     toast.dismiss(loading_id);
-    if (resp.status === 201) {
-      saveJWT(result["access_token"], setJWT);
+    if (resp.ok) {
+      const token = result.data["access_token"];
+      const userData = result.data.user;
+      saveJWT(token, setJWT);
 
-      const userType = await findUserType(
-        result.user.id,
-        result["access_token"]
-      );
+      const userType = await findUserType(userData.id, token);
 
       await SecureStore.setItemAsync(
         "user_info",
-        JSON.stringify({ ...result.user, user_type: userType })
+        JSON.stringify({ ...userData, user_type: userType })
       );
       if (userType === "host") {
         router.replace({ pathname: "/enterHost" });
@@ -85,7 +84,7 @@ export default function EnterPassword() {
         }
         router.replace({ pathname: "/" });
       }
-    } else if (resp.status === 401) {
+    } else if (!resp.ok) {
       toast.error(result.message);
     } else {
       toast.error("Something went wrong!");

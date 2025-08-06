@@ -1,7 +1,7 @@
 import ENDPOINT from "@/constants/endpoint";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { router, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { fetch } from "expo/fetch";
 import { useAtomValue } from "jotai";
 import { Checks } from "phosphor-react-native";
@@ -9,6 +9,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 
 import { useTheme } from "@/hooks/useTheme";
 import { jwtAtom } from "@/utils/jwt";
+import { toast } from "sonner-native";
 
 interface UserDetails {
   _id: string;
@@ -44,7 +45,8 @@ async function getUserDetails(token: string, id: string): Promise<UserDetails> {
   }
 
   const data = await response.json();
-  return data.user as UserDetails;
+  console.log(data);
+  return data.data.user as UserDetails;
 }
 
 interface ChatRoom {
@@ -62,7 +64,7 @@ interface ChatRoom {
   readAt: any;
 }
 
-async function getAllMessages(token: string): Promise<ChatRoom[]> {
+async function getAllMessages(token: string): Promise<ChatRoom[] | null> {
   const response = await fetch(`${ENDPOINT}/chat/messages`, {
     method: "GET",
     headers: {
@@ -73,15 +75,17 @@ async function getAllMessages(token: string): Promise<ChatRoom[]> {
   });
 
   if (!response.ok) {
-    throw new Error(
+    toast(
       `HTTP error! status: ${response.status}. ${JSON.stringify(
         await response.json()
       )}`
     );
+    return null;
   }
 
-  const data: ChatRoom[] = await response.json();
-  return data;
+  const data = await response.json();
+  console.log(data);
+  return [] as ChatRoom[];
 }
 
 export default function Chats() {
@@ -96,7 +100,7 @@ export default function Chats() {
 
   // Fetch user details for each chat sender
   const { data: userData, isLoading: userDataLoading } = useQuery({
-    queryKey: ["userDatas", data?.map((c) => c.senderId).join(",")], // depend on senderIds
+    queryKey: ["userDatas", data], // depend on senderIds
     queryFn: async () => {
       if (!data) return [];
       return Promise.all(
@@ -115,10 +119,6 @@ export default function Chats() {
   }
 
   if (error) {
-    setTimeout(() => {
-      router.dismissTo("/email");
-    }, 2000);
-
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Text>Error: {error.message}</Text>
@@ -136,7 +136,7 @@ export default function Chats() {
         gap: 24,
       }}
     >
-      {data?.map((chat, idx) => (
+      {([] as ChatRoom[]).map((chat, idx) => (
         <ChatItem
           time={dayjs(chat.timestamp).format("h:mm A")}
           name={

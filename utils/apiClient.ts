@@ -3,6 +3,12 @@ import * as SecureStore from "expo-secure-store";
 import { toast } from "sonner-native";
 import { ServerStatus, warmupServer } from "./serverWarmup";
 
+export type NewApiResponse<T> = {
+  success: boolean;
+  data: T;
+  message?: string;
+};
+
 // Define request options interface
 interface ApiRequestOptions extends RequestInit {
   handleColdStart?: boolean;
@@ -42,7 +48,7 @@ export const getAuthToken = async (): Promise<string | null> => {
  */
 export const apiRequest = async <T>(
   endpoint: string,
-  options: ApiRequestOptions = {},
+  options: ApiRequestOptions = {}
 ): Promise<ApiResponse<T>> => {
   // Merge options with defaults
   const mergedOptions: ApiRequestOptions = { ...DEFAULT_OPTIONS, ...options };
@@ -50,7 +56,9 @@ export const apiRequest = async <T>(
     mergedOptions;
 
   // Build the complete URL
-  const url = `${ENDPOINT}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  const url = `${ENDPOINT}${
+    endpoint.startsWith("/") ? endpoint : `/${endpoint}`
+  }`;
 
   // Add authorization header if required
   if (requiresAuth) {
@@ -207,7 +215,7 @@ export const get = <T>(endpoint: string, options: ApiRequestOptions = {}) => {
 export const post = <T>(
   endpoint: string,
   data: any,
-  options: ApiRequestOptions = {},
+  options: ApiRequestOptions = {}
 ) => {
   return apiRequest<T>(endpoint, {
     ...options,
@@ -222,7 +230,7 @@ export const post = <T>(
 export const put = <T>(
   endpoint: string,
   data: any,
-  options: ApiRequestOptions = {},
+  options: ApiRequestOptions = {}
 ) => {
   return apiRequest<T>(endpoint, {
     ...options,
@@ -237,7 +245,7 @@ export const put = <T>(
 export const patch = <T>(
   endpoint: string,
   data: any,
-  options: ApiRequestOptions = {},
+  options: ApiRequestOptions = {}
 ) => {
   return apiRequest<T>(endpoint, {
     ...options,

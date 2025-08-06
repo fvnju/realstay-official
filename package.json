@@ -15,7 +15,7 @@
     "@expo/vector-icons": "^14.1.0",
     "@gorhom/bottom-sheet": "^5.1.4",
     "@legendapp/list": "^1.0.10",
-    "@react-native-menu/menu": "^1.2.2",
+    "@react-native-menu/menu": "^1.2.4",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/drawer": "^7.3.9",
     "@react-navigation/elements": "^2.3.8",
@@ -63,7 +63,6 @@
     "react-native-webview": "13.13.5",
     "socket.io-client": "^4.8.1",
     "sonner-native": "^0.19.0",
-    "zeego": "^3.0.6",
     "zod": "^3.24.4",
     "zod-validation-error": "^3.4.1"
   },

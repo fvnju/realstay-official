@@ -14,6 +14,7 @@ import {
 } from "phosphor-react-native";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
+  Dimensions,
   FlatList,
   KeyboardAvoidingView,
   Text,
@@ -22,7 +23,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as DropdownMenu from "zeego/dropdown-menu";
 
 import ENDPOINT from "@/constants/endpoint";
 import { useSocketRef } from "@/hooks/useSocket";
@@ -30,10 +30,8 @@ import { useTheme } from "@/hooks/useTheme";
 import { jwtAtom } from "@/utils/jwt";
 
 import ProgressCircle from "@/components/ProgressCircle";
-import dayjs from "dayjs";
 import { Image } from "expo-image";
 import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
-import * as ContextMenu from "zeego/context-menu";
 
 interface ChatSocketResponse {
   __v?: number;
@@ -197,7 +195,7 @@ export default function ChatPage() {
       socket.off("receive_message");
       console.log("DONE receiving");
     };
-  }, [socketRef]);
+  }, [socketRef, id]);
 
   const renderItem = useCallback(
     ({ item, index }: { item: ChatSocketResponse; index: number }) => (
@@ -252,6 +250,7 @@ export default function ChatPage() {
         // paddingHorizontal: 16,
         flex: 1,
         backgroundColor: theme.color.appBackground,
+        height: Dimensions.get("screen").height,
       }}
     >
       <Stack.Screen
@@ -406,93 +405,32 @@ export default function ChatPage() {
             paddingTop: 8,
           }}
         >
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger
-              asChild
-              style={{
-                width: 44,
-                height: 44,
-                alignItems: "center",
-                justifyContent: "center",
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                if (!cameraStatus?.granted) {
+                  requestCameraPermission();
+                }
+                if (!mediaStatus?.granted) {
+                  requestMediaPermission();
+                }
               }}
             >
-              <TouchableOpacity
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  if (!cameraStatus?.granted) {
-                    requestCameraPermission();
-                  }
-                  if (!mediaStatus?.granted) {
-                    requestMediaPermission();
-                  }
-                }}
-              >
-                <LinkSimple
-                  color={theme.color.appTextPrimary}
-                  weight="bold"
-                  size={24}
-                />
-              </TouchableOpacity>
-            </DropdownMenu.Trigger>
-
-            <DropdownMenu.Content>
-              <DropdownMenu.Item key="add file" onSelect={pickFile}>
-                <DropdownMenu.ItemTitle>Files</DropdownMenu.ItemTitle>
-                <DropdownMenu.ItemIcon
-                  ios={{
-                    name: "folder",
-                    pointSize: 16,
-                    weight: "semibold",
-                    scale: "medium",
-                  }}
-                />
-              </DropdownMenu.Item>
-
-              <DropdownMenu.Separator />
-
-              <DropdownMenu.Item
-                key="use camera"
-                onSelect={() => {
-                  if (!cameraStatus?.granted) {
-                    requestCameraPermission();
-                  }
-                }}
-              >
-                <DropdownMenu.ItemTitle>Camera</DropdownMenu.ItemTitle>
-                <DropdownMenu.ItemIcon
-                  ios={{
-                    name: "camera",
-                    pointSize: 16,
-                    weight: "semibold",
-                    scale: "medium",
-                  }}
-                />
-              </DropdownMenu.Item>
-
-              <DropdownMenu.Separator />
-
-              <DropdownMenu.Item
-                key="add photo"
-                onSelect={() => {
-                  if (mediaStatus?.granted) {
-                    pickImage();
-                  } else {
-                    requestMediaPermission();
-                  }
-                }}
-              >
-                <DropdownMenu.ItemTitle>Photos</DropdownMenu.ItemTitle>
-                <DropdownMenu.ItemIcon
-                  ios={{
-                    name: "photo",
-                    pointSize: 16,
-                    weight: "semibold",
-                    scale: "medium",
-                  }}
-                />
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
+              <LinkSimple
+                color={theme.color.appTextPrimary}
+                weight="bold"
+                size={24}
+              />
+            </TouchableOpacity>
+          </View>
 
           <TextInput
             ref={textRef}
@@ -582,36 +520,23 @@ const ChatBubble = memo(function ChatBubble({
           }}
         />
         <View style={{ maxWidth: "75%", overflow: "hidden", borderRadius: 14 }}>
-          <ContextMenu.Root>
-            <ContextMenu.Trigger>
-              <Text
-                style={{
-                  // borderRadius: 16,
-                  backgroundColor: isSender
-                    ? theme.color.appPrimary
-                    : theme.color.appSurface,
-                  // maxWidth: "75%",
-                  color: isSender ? "#FFFFFF" : theme.color.appTextPrimary,
-                  ...theme.fontStyles.regular,
-                  fontSize: theme.fontSizes.base,
-                  lineHeight: 24,
-                  paddingVertical: 8,
-                  paddingHorizontal: 16,
-                }}
-              >
-                {content}
-              </Text>
-            </ContextMenu.Trigger>
-
-            <ContextMenu.Content>
-              <ContextMenu.Label>{`${dayjs(time).format(
-                "DD/MM/YYYY"
-              )} · ${dayjs(time).format("h:mm A")}`}</ContextMenu.Label>
-              <ContextMenu.Item key="copy message" onSelect={handleCopy}>
-                <ContextMenu.ItemTitle>Copy</ContextMenu.ItemTitle>
-              </ContextMenu.Item>
-            </ContextMenu.Content>
-          </ContextMenu.Root>
+          <Text
+            style={{
+              // borderRadius: 16,
+              backgroundColor: isSender
+                ? theme.color.appPrimary
+                : theme.color.appSurface,
+              // maxWidth: "75%",
+              color: isSender ? "#FFFFFF" : theme.color.appTextPrimary,
+              ...theme.fontStyles.regular,
+              fontSize: theme.fontSizes.base,
+              lineHeight: 24,
+              paddingVertical: 8,
+              paddingHorizontal: 16,
+            }}
+          >
+            {content}
+          </Text>
         </View>
       </TouchableOpacity>
     </>

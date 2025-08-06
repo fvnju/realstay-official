@@ -78,9 +78,9 @@ export default function EnterHost() {
         <TouchableOpacity
           style={styles.card}
           onPress={() => {
-            while (router.canGoBack()) {
-              router.back();
-            }
+            // while (router.canGoBack()) {
+            //   router.back();
+            // }
             router.replace({ pathname: "/" });
           }}
         >
@@ -96,10 +96,10 @@ export default function EnterHost() {
         <TouchableOpacity
           style={styles.card}
           onPress={() => {
-            while (router.canGoBack()) {
-              router.back();
-            }
-            // @ts-expect-error it be like that sometimes
+            // while (router.canGoBack()) {
+            //   router.back();
+            // }
+
             router.replace({ pathname: "/agents" });
           }}
         >

@@ -40,7 +40,6 @@ export default function Layout() {
     jsonString.includes('"user_type":"host"') &&
     !avoid_redirect
   ) {
-    // @ts-expect-error - The path is valid but TypeScript doesn't know about it
     return <Redirect href={"/agents"} />;
   }
 

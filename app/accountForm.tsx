@@ -82,11 +82,21 @@ export default function AccountForm() {
     const isFirstNameValid = nameValidator.safeParse(first_name).success;
     const isLastNameValid = nameValidator.safeParse(last_name).success;
     const phoneResult = nigerianPhoneValidator.safeParse(phone_number);
-    const isPhoneValid = phoneResult.success;
 
-    if (!isFirstNameValid && !isLastNameValid && !isPhoneValid) {
-      toast.error("Form wasn't filled properly");
-      return null;
+    if (!phoneResult.success) {
+      toast.error("Bad phone number", {
+        description: `${JSON.parse(phoneResult.error.message)[0].message}`,
+      });
+      return;
+    }
+
+    if (!isFirstNameValid || !isLastNameValid) {
+      toast.error("Invalid names", {
+        description: !isFirstNameValid
+          ? "First name is not valid"
+          : "Last name is not valid",
+      });
+      return;
     }
 
     const resp = await fetch(`${ENDPOINT}/auth/signup`, {
@@ -112,10 +122,15 @@ export default function AccountForm() {
       toast.success("Account created!");
       router.dismissTo({ pathname: "/email" });
     } else {
-      toast.error("Something went wrong...");
+      toast.error("Something went wrong...", {
+        description: `Status code: ${resp.status}. Message: ${
+          result.message || result.error || "n/a"
+        }`,
+      });
     }
     console.log(resp.status);
     console.log(result);
+    console.log(phoneResult.success);
   };
 
   return (

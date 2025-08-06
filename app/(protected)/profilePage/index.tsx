@@ -1,13 +1,11 @@
 import { useTheme } from "@/hooks/useTheme";
 import { apiRequest } from "@/utils/apiClient";
-import dayjs from "dayjs";
 import { Stack, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { CaretLeft, PencilSimple, WarningCircle } from "phosphor-react-native";
 import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as ContextMenu from "zeego/context-menu";
 
 export default function ProfilePage() {
   const theme = useTheme();
@@ -22,7 +20,7 @@ export default function ProfilePage() {
       const networkData = await apiRequest(`/users/${userInfo["id"]}`, {
         requiresAuth: true,
       });
-      setUserInfo_fresh((networkData.data as any).user);
+      setUserInfo_fresh((networkData.data as any).data.user);
       if (networkData.status === 401) {
         await SecureStore.deleteItemAsync("access_token").then(() => {
           router.dismissTo({ pathname: "/email" });
@@ -129,33 +127,23 @@ export default function ProfilePage() {
         >
           Created on:
         </Text>
-        <ContextMenu.Root>
-          <ContextMenu.Trigger>
-            <Text
-              style={[
-                theme.fontStyles.regular,
-                {
-                  fontWeight: 400,
-                  fontSize: theme.fontSizes.base,
-                  textDecorationLine: "underline",
-                  color: theme.color.appTextPrimary,
-                  backgroundColor: theme.color.appBackground,
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                },
-              ]}
-            >
-              {userInfo_fresh === "" ? "unknown" : userInfo_fresh.createdAt}
-            </Text>
-          </ContextMenu.Trigger>
-          <ContextMenu.Content>
-            <ContextMenu.Item key="formated date">{`${dayjs(
-              userInfo_fresh.createdAt
-            ).format("DD/MM/YYYY")} · ${dayjs(userInfo_fresh.createdAt).format(
-              "h:mm A"
-            )}`}</ContextMenu.Item>
-          </ContextMenu.Content>
-        </ContextMenu.Root>
+
+        <Text
+          style={[
+            theme.fontStyles.regular,
+            {
+              fontWeight: 400,
+              fontSize: theme.fontSizes.base,
+              textDecorationLine: "underline",
+              color: theme.color.appTextPrimary,
+              backgroundColor: theme.color.appBackground,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+            },
+          ]}
+        >
+          {userInfo_fresh === "" ? "unknown" : userInfo_fresh.createdAt}
+        </Text>
       </View>
 
       {/* Report Button for different user */}

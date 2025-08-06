@@ -102,6 +102,7 @@ export default function Layout() {
               tabBarIcon(props) {
                 return TabBarIcon({ name: value, ...props });
               },
+              animation: "none",
             }}
           />
         ))}

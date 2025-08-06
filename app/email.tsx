@@ -3,7 +3,7 @@ import { Stack, useRouter } from "expo-router";
 import { PrimaryButton } from "@/components/Button/Primary";
 import TextField from "@/components/TextField";
 import { useTheme } from "@/hooks/useTheme";
-import { get } from "@/utils/apiClient";
+import { get, NewApiResponse } from "@/utils/apiClient";
 import { useServerWarmup } from "@/utils/serverWarmup";
 import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
@@ -23,16 +23,18 @@ import { z as zod } from "zod";
 import { fromError } from "zod-validation-error";
 
 async function userExist(usersEmail: string): Promise<boolean> {
-  const response = await get<{ user_exist: boolean }>(
+  const response = await get<NewApiResponse<{ user_exist: boolean }>>(
     `/users/check-email-availability?email=${usersEmail}`,
     { showErrorToast: false }
   );
 
   if (response.error) {
-    throw new Error(response.error);
+    toast(response.error);
   }
 
-  return response.data?.user_exist || false;
+  console.log(response.data?.data.user_exist);
+
+  return response.data?.data.user_exist || false;
 }
 
 export default function EnterEmail() {
