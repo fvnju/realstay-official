@@ -1,10 +1,6 @@
-import { SymbolView } from "expo-symbols";
-import { forwardRef, useState } from "react";
-import React from "react";
+import React, { forwardRef, useState } from "react";
 import {
-  Keyboard,
   Pressable,
-  Text,
   type TextInputProps,
   TextInput as TextInputReal,
   type TextStyle,
@@ -12,10 +8,10 @@ import {
   type ViewStyle,
 } from "react-native";
 // import { EyeIcon, EyeSlashIcon, XMarkIcon } from 'react-native-heroicons/outline';
-import { X, Eye, EyeSlash } from "phosphor-react-native";
+import { useTheme } from "@/hooks/useTheme";
+import { Eye, EyeSlash, X } from "phosphor-react-native";
 import Animated, {
   FadeIn,
-  FadeOut,
   interpolateColor,
   LayoutAnimationConfig,
   SlideInRight,
@@ -24,7 +20,6 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { useTheme } from "@/hooks/useTheme";
 
 const TextInput = Animated.createAnimatedComponent(TextInputReal);
 
@@ -53,7 +48,7 @@ const TextField = forwardRef<
           textInput.borderColor!.toString(),
           // biome-ignore lint/style/noNonNullAssertion: <explanation>
           activeColor.borderColor!.toString(),
-        ],
+        ]
       ),
     };
   }, [textInput]);
@@ -222,12 +217,12 @@ const styleSheet = (): { [key: string]: ViewStyle & TextStyle } => {
   const theme = useTheme();
   return {
     text_2: {
-      color: theme.color.appTextSecondary,
+      color: theme.colors.appTextSecondary,
     },
     textInput: {
-      color: theme.color.appTextPrimary,
-      borderColor: theme.color.elementsTextFieldBorder,
-      backgroundColor: theme.color.elementsTextFieldBackground,
+      color: theme.colors.appTextPrimary,
+      borderColor: theme.colors.elementsTextFieldBorder,
+      backgroundColor: theme.colors.elementsTextFieldBackground,
       ...theme.fontStyles.regular,
       fontSize: theme.fontSizes.base,
       flexDirection: "row",
@@ -239,17 +234,17 @@ const styleSheet = (): { [key: string]: ViewStyle & TextStyle } => {
       borderRadius: 13,
     },
     activeColor: {
-      borderColor: theme.color.elementsTextFieldFocus,
+      borderColor: theme.colors.elementsTextFieldFocus,
     },
     dropShadow: {
-      shadowColor: theme.color.appDropShadow,
+      shadowColor: theme.colors.appDropShadow,
       shadowOffset: {
         height: 2,
         width: 0,
       },
       shadowOpacity: 0,
       shadowRadius: 0,
-      backgroundColor: theme.color.elementsTextFieldBackground,
+      backgroundColor: theme.colors.elementsTextFieldBackground,
       borderRadius: 16,
     },
   };

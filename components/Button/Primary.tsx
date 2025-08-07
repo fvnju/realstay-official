@@ -1,7 +1,7 @@
+import { useTheme } from "@/hooks/useTheme";
 import { type ReactNode, forwardRef } from "react";
 import {
   type StyleProp,
-  StyleSheet,
   Text,
   type TextStyle,
   TouchableOpacity,
@@ -9,7 +9,6 @@ import {
   type View,
   type ViewStyle,
 } from "react-native";
-import { useTheme } from "@/hooks/useTheme";
 
 type ButtonProps = {
   children?: ReactNode | string;
@@ -24,7 +23,7 @@ export const PrimaryButton = forwardRef<View, ButtonProps>(
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.color.elementsButtonBackground,
+        backgroundColor: theme.colors.elementsButtonBackground,
         borderRadius: 999,
         paddingVertical: 16,
         width: "100%",
@@ -38,7 +37,7 @@ export const PrimaryButton = forwardRef<View, ButtonProps>(
         shadowRadius: 0,
       },
       buttonText: {
-        color: theme.color.elementsButtonText,
+        color: theme.colors.elementsButtonText,
         fontSize: theme.fontSizes.base,
         ...theme.fontStyles.medium,
         letterSpacing: theme.letterSpacing.bitTight * theme.fontSizes.base,
@@ -61,5 +60,5 @@ export const PrimaryButton = forwardRef<View, ButtonProps>(
         )}
       </TouchableOpacity>
     );
-  },
+  }
 );

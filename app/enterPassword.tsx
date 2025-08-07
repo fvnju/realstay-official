@@ -85,7 +85,8 @@ export default function EnterPassword() {
         router.replace({ pathname: "/" });
       }
     } else if (!resp.ok) {
-      toast.error(result.message);
+      // console.log(result);
+      toast.error(`${result.data.message} - Status code: ${resp.status}`);
     } else {
       toast.error("Something went wrong!");
     }
@@ -179,47 +180,47 @@ const styleSheet = (): { [key: string]: ViewStyle & TextStyle } => {
   const theme = useTheme();
   return {
     disabled: {
-      backgroundColor: theme.color.elementsButtonDisabled,
+      backgroundColor: theme.colors.elementsButtonDisabled,
       shadowOpacity: 0,
-      color: theme.color.elementsButtonDisabledText,
+      color: theme.colors.elementsButtonDisabledText,
     },
     policyText: {
       ...theme.fontStyles.regular,
       lineHeight: theme.fontSizes.sm * 1.4,
       fontSize: theme.fontSizes.sm,
-      color: theme.color.appTextPrimary,
+      color: theme.colors.appTextPrimary,
       textAlign: "center",
     },
     links: {
-      color: theme.color.appTextAccent,
+      color: theme.colors.appTextAccent,
       textDecorationLine: "underline",
     },
     background: {
-      backgroundColor: theme.color.appBackground,
+      backgroundColor: theme.colors.appBackground,
     },
     text: {
       ...theme.fontStyles.semiBold,
-      color: theme.color.appTextPrimary,
+      color: theme.colors.appTextPrimary,
       fontSize: theme.fontSizes.lg,
     },
     text_2: {
-      color: theme.color.appTextSecondary,
+      color: theme.colors.appTextSecondary,
     },
     heading: {
       ...theme.fontStyles.bold,
-      fontSize: theme.fontSizes.xl_4,
-      lineHeight: theme.fontSizes.xl_4 + 6,
-      color: theme.color.appTextPrimary,
+      fontSize: theme.fontSizes.h1,
+      lineHeight: theme.fontSizes.h1 + 6,
+      color: theme.colors.appTextPrimary,
       marginTop: 16,
     },
     _email_: {
-      color: theme.color.appTextAccent,
+      color: theme.colors.appTextAccent,
     },
     textInput: {
-      color: theme.color.appTextPrimary,
+      color: theme.colors.appTextPrimary,
       borderWidth: 3,
-      borderColor: theme.color.elementsTextFieldBorder,
-      backgroundColor: theme.color.elementsTextFieldBackground,
+      borderColor: theme.colors.elementsTextFieldBorder,
+      backgroundColor: theme.colors.elementsTextFieldBackground,
       ...theme.fontStyles.regular,
       fontSize: theme.fontSizes.base,
       flexDirection: "row",
@@ -229,7 +230,7 @@ const styleSheet = (): { [key: string]: ViewStyle & TextStyle } => {
       borderRadius: 16,
     },
     activeColor: {
-      borderColor: theme.color.elementsTextFieldFocus,
+      borderColor: theme.colors.elementsTextFieldFocus,
     },
   };
 };

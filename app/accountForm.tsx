@@ -3,9 +3,10 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { fetch } from "expo/fetch";
 import { useAtomValue } from "jotai";
 import { CaretDown } from "phosphor-react-native";
-import React, { useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { toast } from "sonner-native";
 import z from "zod";
 
 import { passwordAtom } from "./createPassword";
@@ -14,10 +15,10 @@ import { PrimaryButton } from "@/components/Button/Primary";
 import { DropdownMenu, MenuOption } from "@/components/DropDown";
 import TextField from "@/components/TextField";
 import ENDPOINT from "@/constants/endpoint";
+import { createThemedStyles } from "@/constants/themes";
 import { useTheme } from "@/hooks/useTheme";
-import { toast } from "sonner-native";
 
-// Name validator - allows letters, spaces, and hyphens, 2-50 characters
+// Validation schemas
 const nameValidator = z
   .string()
   .min(2, "Name must be at least 2 characters")
@@ -27,32 +28,15 @@ const nameValidator = z
     "Name can only contain letters, spaces, and hyphens"
   );
 
-// Nigerian phone number validator
 const nigerianPhoneValidator = z
   .string()
   .transform((val) => {
-    // Remove all non-digit characters
     const digits = val.replace(/\D/g, "");
 
-    // If number starts with 0, replace with 234
-    if (digits.startsWith("0")) {
-      return "234" + digits.slice(1);
-    }
-
-    // If number starts with 234, return as is
-    if (digits.startsWith("234")) {
-      return digits;
-    }
-
-    // If number starts with +234, remove the +
-    if (digits.startsWith("+234")) {
-      return digits.slice(1);
-    }
-
-    // If number is 10 digits, prepend 234
-    if (digits.length === 10) {
-      return "234" + digits;
-    }
+    if (digits.startsWith("0")) return "234" + digits.slice(1);
+    if (digits.startsWith("234")) return digits;
+    if (digits.startsWith("+234")) return digits.slice(1);
+    if (digits.length === 10) return "234" + digits;
 
     return digits;
   })
@@ -61,348 +45,339 @@ const nigerianPhoneValidator = z
     "Phone number must be a valid Nigerian number"
   );
 
+// Form data type
+interface FormData {
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  gender: string;
+  isHost: boolean;
+}
+
+// Gender options
+const GENDER_OPTIONS = [
+  { label: "Female", value: "Female" },
+  { label: "Male", value: "Male" },
+  { label: "Not Specified", value: "Not Specified" },
+] as const;
+
 export default function AccountForm() {
   const password = useAtomValue(passwordAtom);
-  const { top, bottom } = useSafeAreaInsets();
+  const { bottom } = useSafeAreaInsets();
   const theme = useTheme();
+  const styles = createThemedStyles(theme);
   const { email } = useLocalSearchParams();
   const router = useRouter();
-  const [visible, setVisible] = useState(false);
-  const [gender, setGender] = useState("Not Specified");
-  const [isHost, setIsHost] = useState(false);
-  const [first_name, setFirst_name] = useState("");
-  const [last_name, setLast_name] = useState("");
-  const [phone_number, setPhone_Number] = useState("");
 
-  const inputRef1 = useRef<TextInput>(null);
-  const inputRef2 = useRef<TextInput>(null);
-  const inputRef3 = useRef<TextInput>(null);
+  // Form state
+  const [formData, setFormData] = useState<FormData>({
+    first_name: "",
+    last_name: "",
+    phone_number: "",
+    gender: "Not Specified",
+    isHost: false,
+  });
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const createAccount = async () => {
-    const isFirstNameValid = nameValidator.safeParse(first_name).success;
-    const isLastNameValid = nameValidator.safeParse(last_name).success;
-    const phoneResult = nigerianPhoneValidator.safeParse(phone_number);
+  // Refs for input management
+  const inputRefs = {
+    firstName: useRef<TextInput>(null),
+    lastName: useRef<TextInput>(null),
+    phone: useRef<TextInput>(null),
+  };
+
+  const blurAllInputs = useCallback(() => {
+    Object.values(inputRefs).forEach((ref) => ref.current?.blur());
+  }, []);
+
+  const updateFormData = useCallback(
+    (field: keyof FormData, value: string | boolean) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    },
+    []
+  );
+
+  const validateForm = useCallback(() => {
+    const firstNameResult = nameValidator.safeParse(formData.first_name);
+    const lastNameResult = nameValidator.safeParse(formData.last_name);
+    const phoneResult = nigerianPhoneValidator.safeParse(formData.phone_number);
+
+    if (!firstNameResult.success) {
+      toast.error("Invalid first name", {
+        description: firstNameResult.error.errors[0]?.message,
+      });
+      return null;
+    }
+
+    if (!lastNameResult.success) {
+      toast.error("Invalid last name", {
+        description: lastNameResult.error.errors[0]?.message,
+      });
+      return null;
+    }
 
     if (!phoneResult.success) {
-      toast.error("Bad phone number", {
-        description: `${JSON.parse(phoneResult.error.message)[0].message}`,
+      toast.error("Invalid phone number", {
+        description: phoneResult.error.errors[0]?.message,
       });
-      return;
+      return null;
     }
 
-    if (!isFirstNameValid || !isLastNameValid) {
-      toast.error("Invalid names", {
-        description: !isFirstNameValid
-          ? "First name is not valid"
-          : "Last name is not valid",
-      });
-      return;
-    }
+    return {
+      ...formData,
+      phone_number: phoneResult.data,
+    };
+  }, [formData]);
 
-    const resp = await fetch(`${ENDPOINT}/auth/signup`, {
-      body: JSON.stringify({
-        email,
-        password,
-        first_name,
-        last_name,
-        gender,
-        phone_number: phoneResult.data,
-        user_type: isHost ? "host" : "guest",
-      }),
-      method: "POST",
-      headers: {
-        Accept: "*/*",
-        "Content-Type": "application/json",
-        "User-Agent": "RealStayApp",
-      },
-    });
-    const result = await resp.json();
+  const createAccount = useCallback(async () => {
+    if (isSubmitting) return;
 
-    if (resp.status === 201) {
-      toast.success("Account created!");
-      router.dismissTo({ pathname: "/email" });
-    } else {
-      toast.error("Something went wrong...", {
-        description: `Status code: ${resp.status}. Message: ${
-          result.message || result.error || "n/a"
-        }`,
+    const validatedData = validateForm();
+    if (!validatedData) return;
+
+    setIsSubmitting(true);
+    blurAllInputs();
+
+    try {
+      const response = await fetch(`${ENDPOINT}/auth/signup`, {
+        method: "POST",
+        headers: {
+          Accept: "*/*",
+          "Content-Type": "application/json",
+          "User-Agent": "RealStayApp",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          first_name: validatedData.first_name,
+          last_name: validatedData.last_name,
+          gender: validatedData.gender,
+          phone_number: validatedData.phone_number,
+          user_type: validatedData.isHost ? "host" : "guest",
+        }),
       });
+
+      const result = await response.json();
+
+      if (response.status === 201) {
+        toast.success("Account created successfully!");
+        router.dismissTo({ pathname: "/email" });
+      } else {
+        toast.error("Account creation failed", {
+          description:
+            result.message || result.error || `Status: ${response.status}`,
+        });
+      }
+    } catch (error) {
+      toast.error("Network error", {
+        description: "Please check your connection and try again",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    console.log(resp.status);
-    console.log(result);
-    console.log(phoneResult.success);
-  };
+  }, [isSubmitting, validateForm, blurAllInputs, email, password, router]);
 
   return (
     <View
-      style={{
-        paddingTop: 24,
-        paddingBottom: bottom,
-        flex: 1,
-        backgroundColor: theme.color.appBackground,
-        paddingHorizontal: 16,
-      }}
+      style={[
+        styles.container,
+        { paddingTop: 24, paddingBottom: bottom, paddingHorizontal: 16 },
+      ]}
     >
       <Stack.Screen
         options={{
-          title: "Create password",
+          title: "Create Account",
           headerTitle: () => <></>,
           headerShown: true,
           headerBackTitle: "Go back",
-          headerStyle: { backgroundColor: theme.color.appBackground },
+          headerStyle: { backgroundColor: theme.colors.background },
           headerShadowVisible: false,
           headerBackTitleStyle: {
             ...theme.fontStyles.semiBold,
             fontSize: theme.fontSizes.lg,
           },
-          headerTintColor: theme.color.appTextSecondary,
+          headerTintColor: theme.colors.text.secondary,
         }}
       />
-      <Text
-        style={{
-          ...theme.fontStyles.semiBold,
-          fontSize: theme.fontSizes.xl_4,
-          color: theme.color.appTextPrimary,
-        }}
-      >
+
+      <Text style={[styles.heading, { fontSize: theme.fontSizes.h1 }]}>
         Fill this form
       </Text>
-      <View style={{ marginTop: 40, flexDirection: "row", gap: 16 }}>
-        <View style={{ flex: 1, gap: 8 }}>
-          <Text
-            style={{
-              ...theme.fontStyles.semiBold,
-              fontSize: theme.fontSizes.base,
-              color: theme.color.appTextPrimary,
-            }}
-          >
-            First Name
-          </Text>
+      <View style={componentStyles.nameRow}>
+        <View style={componentStyles.nameField}>
+          <Text style={styles.text}>First Name</Text>
           <TextField
-            autoComplete="cc-name"
-            ref={inputRef1}
-            onChangeText={(text) => {
-              setFirst_name(text);
-            }}
+            autoComplete="given-name"
+            ref={inputRefs.firstName}
+            value={formData.first_name}
+            onChangeText={(text) => updateFormData("first_name", text)}
           />
         </View>
-        <View style={{ flex: 1, gap: 8 }}>
-          <Text
-            style={{
-              ...theme.fontStyles.semiBold,
-              fontSize: theme.fontSizes.base,
-              color: theme.color.appTextPrimary,
-            }}
-          >
-            Last Name
-          </Text>
+        <View style={componentStyles.nameField}>
+          <Text style={styles.text}>Last Name</Text>
           <TextField
-            autoComplete="cc-family-name"
-            ref={inputRef2}
-            onChangeText={(text) => setLast_name(text)}
+            autoComplete="family-name"
+            ref={inputRefs.lastName}
+            value={formData.last_name}
+            onChangeText={(text) => updateFormData("last_name", text)}
           />
         </View>
       </View>
 
-      <View style={{ marginTop: 24, gap: 8 }}>
-        <Text
-          style={{
-            ...theme.fontStyles.semiBold,
-            fontSize: theme.fontSizes.base,
-            color: theme.color.appTextPrimary,
-          }}
-        >
-          Phone Number
-        </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={componentStyles.fieldContainer}>
+        <Text style={styles.text}>Phone Number</Text>
+        <View style={componentStyles.phoneRow}>
           <View
-            style={{
-              aspectRatio: 1,
-              height: 48,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 16,
-              backgroundColor: theme.color.appSurface,
-            }}
+            style={[
+              componentStyles.countryCode,
+              { backgroundColor: theme.colors.surface },
+            ]}
           >
             <Text>🇳🇬</Text>
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={componentStyles.phoneInput}>
             <TextField
               placeholder="e.g. 08012345678"
               accessibilityLabel="phone number"
-              importantForAutofill="yes"
               keyboardType="phone-pad"
               autoComplete="tel"
-              ref={inputRef3}
-              onChangeText={(text) => setPhone_Number(text)}
+              ref={inputRefs.phone}
+              value={formData.phone_number}
+              onChangeText={(text) => updateFormData("phone_number", text)}
             />
           </View>
         </View>
       </View>
 
-      <View style={{ marginTop: 24, gap: 8 }}>
-        <Text
-          style={{
-            color: theme.color.appTextPrimary,
-            ...theme.fontStyles.semiBold,
-            fontSize: theme.fontSizes.base,
-          }}
-        >
-          Gender
-        </Text>
+      <View style={componentStyles.fieldContainer}>
+        <Text style={styles.text}>Gender</Text>
         <DropdownMenu
-          itemsBackgroundColor={theme.color.appSurface}
-          visible={visible}
+          itemsBackgroundColor={theme.colors.surface}
+          visible={dropdownVisible}
           handleOpen={() => {
-            setVisible(true);
-            inputRef1.current?.blur();
-            inputRef2.current?.blur();
-            inputRef3.current?.blur();
+            setDropdownVisible(true);
+            blurAllInputs();
           }}
-          handleClose={() => setVisible(false)}
+          handleClose={() => setDropdownVisible(false)}
           trigger={
             <View
               style={[
-                styles.triggerStyle,
+                componentStyles.dropdownTrigger,
                 {
-                  borderColor: theme.color.elementsTextFieldBorder,
-                  backgroundColor: theme.color.elementsTextFieldBackground,
-                  borderWidth: 3,
-                  gap: 8,
+                  borderColor: theme.colors.input.border,
+                  backgroundColor: theme.colors.input.background,
                 },
               ]}
             >
-              <Text
-                style={{
-                  fontSize: 16,
-                  ...theme.fontStyles.regular,
-                  color: theme.color.appTextSecondary,
-                }}
-              >
-                {gender}
+              <Text style={[styles.textSecondary, { fontSize: 16 }]}>
+                {formData.gender}
               </Text>
               <CaretDown
                 weight="light"
-                color={theme.color.appTextSecondary}
+                color={theme.colors.text.secondary}
                 size={20}
               />
             </View>
           }
         >
-          <MenuOption
-            onSelect={() => {
-              setVisible(false);
-              setGender("Female");
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                ...theme.fontStyles.regular,
-                color: theme.color.appTextPrimary,
+          {GENDER_OPTIONS.map((option) => (
+            <MenuOption
+              key={option.value}
+              onSelect={() => {
+                setDropdownVisible(false);
+                updateFormData("gender", option.value);
               }}
             >
-              Female
-            </Text>
-          </MenuOption>
-          <MenuOption
-            onSelect={() => {
-              setVisible(false);
-              setGender("Male");
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                ...theme.fontStyles.regular,
-                color: theme.color.appTextPrimary,
-              }}
-            >
-              Male
-            </Text>
-          </MenuOption>
-          <MenuOption
-            onSelect={() => {
-              setVisible(false);
-              setGender("Not Specified");
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                ...theme.fontStyles.regular,
-                color: theme.color.appTextPrimary,
-              }}
-            >
-              Not Specified
-            </Text>
-          </MenuOption>
+              <Text style={[styles.text, { fontSize: 16 }]}>
+                {option.label}
+              </Text>
+            </MenuOption>
+          ))}
         </DropdownMenu>
       </View>
 
       <Pressable
-        style={{
-          marginTop: 24,
-          gap: 12,
-          flexDirection: "row",
-          height: 48,
-          alignSelf: "flex-start",
-          justifyContent: "center",
-        }}
+        style={componentStyles.checkboxContainer}
         onPress={() => {
-          setIsHost((past) => !past);
-          inputRef1.current?.blur();
-          inputRef2.current?.blur();
-          inputRef3.current?.blur();
+          updateFormData("isHost", !formData.isHost);
+          blurAllInputs();
         }}
       >
-        <Text
-          style={{
-            color: theme.color.appTextPrimary,
-            ...theme.fontStyles.semiBold,
-            fontSize: theme.fontSizes.base,
-          }}
-        >
-          Will you be listing property?
-        </Text>
+        <Text style={styles.text}>Will you be listing property?</Text>
         <Checkbox
-          color={theme.color.appTextAccent}
-          style={{ borderRadius: 6 }}
-          value={isHost}
+          color={theme.colors.primary}
+          style={componentStyles.checkbox}
+          value={formData.isHost}
           onValueChange={(val) => {
-            setIsHost(val);
-            inputRef1.current?.blur();
-            inputRef2.current?.blur();
-            inputRef3.current?.blur();
+            updateFormData("isHost", val);
+            blurAllInputs();
           }}
         />
       </Pressable>
 
-      <PrimaryButton style={{ marginTop: 64 - 24 }} onPress={createAccount}>
-        Create Account
+      <PrimaryButton
+        style={componentStyles.submitButton}
+        onPress={createAccount}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Creating Account..." : "Create Account"}
       </PrimaryButton>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5fcff",
+const componentStyles = StyleSheet.create({
+  nameRow: {
+    marginTop: 40,
+    flexDirection: "row",
+    gap: 16,
   },
-  triggerStyle: {
+  nameField: {
+    flex: 1,
+    gap: 8,
+  },
+  fieldContainer: {
+    marginTop: 24,
+    gap: 8,
+  },
+  phoneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  countryCode: {
+    aspectRatio: 1,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+  },
+  phoneInput: {
+    flex: 1,
+  },
+  dropdownTrigger: {
     height: 48,
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
-    // width: 120,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 16,
-    gap: 4,
+    borderWidth: 1,
+  },
+  checkboxContainer: {
+    marginTop: 24,
+    gap: 12,
+    flexDirection: "row",
+    height: 48,
     alignSelf: "flex-start",
+    alignItems: "center",
+  },
+  checkbox: {
+    borderRadius: 6,
+  },
+  submitButton: {
+    marginTop: 40,
   },
 });

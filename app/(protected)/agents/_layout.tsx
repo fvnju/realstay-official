@@ -47,7 +47,7 @@ export default function Layout() {
           animation: "fade",
           gestureEnabled: false,
           contentStyle: {
-            backgroundColor: theme.color.appBackground,
+            backgroundColor: theme.colors.appBackground,
           },
           headerShown: false,
         }}
@@ -117,15 +117,15 @@ const styleSheet = () => {
 
   return {
     activeIcon: {
-      color: theme.color.elementsButtonBackground,
+      color: theme.colors.elementsButtonBackground,
     },
     tabIcon: {
-      color: `${theme.color.elementsTabBarIconNormal}80`, //66
+      color: `${theme.colors.elementsTabBarIconNormal}80`, //66
     },
     bottomTab: {
-      borderTopColor: theme.color.elementsTextFieldBorder,
+      borderTopColor: theme.colors.elementsTextFieldBorder,
       borderTopWidth: StyleSheet.hairlineWidth,
-      backgroundColor: theme.color.appBackground,
+      backgroundColor: theme.colors.appBackground,
     },
   };
 };

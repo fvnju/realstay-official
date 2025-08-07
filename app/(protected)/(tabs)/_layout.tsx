@@ -1,7 +1,7 @@
 import TabBarIcon from "@/components/TabBarIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { useFocusEffect } from "@react-navigation/native";
-import { Redirect, Stack, Tabs } from "expo-router";
+import { Stack, Tabs } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useAtomValue } from "jotai";
 import React from "react";
@@ -35,13 +35,13 @@ export default function Layout() {
   const avoid_redirect = useAtomValue(avoid_redirect_to_agent);
 
   const jsonString = SecureStore.getItem("user_info");
-  if (
-    jsonString &&
-    jsonString.includes('"user_type":"host"') &&
-    !avoid_redirect
-  ) {
-    return <Redirect href={"/agents"} />;
-  }
+  // if (
+  //   jsonString &&
+  //   jsonString.includes('"user_type":"host"') &&
+  //   !avoid_redirect
+  // ) {
+  //   return <Redirect href={"/agents"} />;
+  // }
 
   useFocusEffect(
     React.useCallback(() => {
@@ -67,7 +67,7 @@ export default function Layout() {
           animation: "fade",
           gestureEnabled: false,
           contentStyle: {
-            backgroundColor: theme.color.appBackground,
+            backgroundColor: theme.colors.appBackground,
           },
         }}
       />
@@ -135,15 +135,15 @@ const styleSheet = () => {
 
   return {
     activeIcon: {
-      color: theme.color.elementsButtonBackground,
+      color: theme.colors.elementsButtonBackground,
     },
     tabIcon: {
-      color: `${theme.color.elementsTabBarIconNormal}80`, //66
+      color: `${theme.colors.elementsTabBarIconNormal}80`, //66
     },
     bottomTab: {
-      borderTopColor: theme.color.elementsTextFieldBorder,
+      borderTopColor: theme.colors.elementsTextFieldBorder,
       borderTopWidth: StyleSheet.hairlineWidth,
-      backgroundColor: theme.color.appBackground,
+      backgroundColor: theme.colors.appBackground,
     },
   };
 };

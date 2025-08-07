@@ -1,116 +1,222 @@
+import { createThemedStyles } from "@/constants/themes";
 import { useTheme } from "@/hooks/useTheme";
 import { Stack, useRouter } from "expo-router";
-import { House, User } from "phosphor-react-native";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ArrowRight, House, User } from "phosphor-react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// Animated Card Component
+const AnimatedCard = ({
+  icon,
+  title,
+  description,
+  onPress,
+  theme,
+  isPrimary = false,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  onPress: () => void;
+  theme: any;
+  isPrimary?: boolean;
+}) => {
+  const scale = useSharedValue(1);
+  const { width } = Dimensions.get("window");
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
+
+  const cardStyles = StyleSheet.create({
+    card: {
+      backgroundColor: isPrimary ? theme.colors.primary : theme.colors.surface,
+      borderRadius: 20,
+      padding: 24,
+      marginHorizontal: 4,
+      minHeight: 180,
+      justifyContent: "space-between",
+      ...theme.shadows.lg,
+      borderWidth: isPrimary ? 0 : 1,
+      borderColor: theme.colors.border,
+    },
+    iconContainer: {
+      alignSelf: "flex-start",
+      padding: 12,
+      backgroundColor: isPrimary
+        ? "rgba(255,255,255,0.2)"
+        : theme.colors.primary + "15",
+      borderRadius: 12,
+      marginBottom: 16,
+    },
+    content: {
+      flex: 1,
+    },
+    title: {
+      fontSize: theme.fontSizes.h3,
+      ...theme.fontStyles.bold,
+      color: isPrimary ? "#ffffff" : theme.colors.text.primary,
+      marginBottom: 8,
+    },
+    description: {
+      fontSize: theme.fontSizes.sm,
+      ...theme.fontStyles.regular,
+      color: isPrimary ? "rgba(255,255,255,0.9)" : theme.colors.text.secondary,
+      lineHeight: theme.fontSizes.sm * 1.4,
+      marginBottom: 16,
+    },
+    footer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      position: "absolute",
+      top: 16,
+      right: 16,
+      gap: 8,
+    },
+    actionText: {
+      fontSize: theme.fontSizes.sm,
+      ...theme.fontStyles.semiBold,
+      color: isPrimary ? "#ffffff" : theme.colors.primary,
+    },
+  });
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <TouchableOpacity
+        style={cardStyles.card}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.9}
+      >
+        <View style={cardStyles.content}>
+          <View style={cardStyles.iconContainer}>{icon}</View>
+          <Text style={cardStyles.title}>{title}</Text>
+          <Text style={cardStyles.description}>{description}</Text>
+        </View>
+
+        <View style={cardStyles.footer}>
+          <Text style={cardStyles.actionText}>Get Started</Text>
+          <ArrowRight
+            size={16}
+            color={isPrimary ? "#ffffff" : theme.colors.primary}
+            weight="bold"
+          />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 export default function EnterHost() {
   const theme = useTheme();
   const router = useRouter();
   const { top, bottom } = useSafeAreaInsets();
+  const styles = createThemedStyles(theme);
 
-  const styles = StyleSheet.create({
+  const componentStyles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.color.appBackground,
-      paddingTop: top + 24,
+      backgroundColor: theme.colors.background,
+      paddingTop: top + 32,
       paddingBottom: bottom + 24,
-      paddingHorizontal: 16,
+      paddingHorizontal: 20,
+    },
+    header: {
+      alignItems: "center",
+      marginBottom: 0,
     },
     title: {
-      fontSize: theme.fontSizes.xl_4,
+      fontSize: theme.fontSizes.display,
       ...theme.fontStyles.bold,
-      color: theme.color.appTextPrimary,
+      color: theme.colors.text.primary,
       textAlign: "center",
-      marginBottom: 8,
+      marginBottom: 12,
+      letterSpacing: theme.letterSpacing.tight * theme.fontSizes.display,
+      lineHeight: theme.fontSizes.display,
     },
     subtitle: {
-      fontSize: theme.fontSizes.base,
-      ...theme.fontStyles.regular,
-      color: theme.color.appTextSecondary,
+      fontSize: theme.fontSizes.h1,
+      ...theme.fontStyles.bold,
+      color: theme.colors.text.secondary,
       textAlign: "center",
-      marginBottom: 48,
+      lineHeight: theme.fontSizes.h1,
     },
     cardContainer: {
       flex: 1,
       justifyContent: "center",
-      gap: 24,
+      gap: 20,
     },
-    card: {
-      backgroundColor: theme.color.appSurface,
-      borderRadius: 24,
-      padding: 24,
+    brandingContainer: {
       alignItems: "center",
-      shadowColor: theme.color.appDropShadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 4,
+      marginTop: 0,
     },
-    cardIcon: {
-      marginBottom: 16,
-      padding: 16,
-      backgroundColor: theme.color.appBackground,
-      borderRadius: 16,
-    },
-    cardTitle: {
-      fontSize: theme.fontSizes.xl,
-      ...theme.fontStyles.semiBold,
-      color: theme.color.appTextPrimary,
-      marginBottom: 8,
-    },
-    cardDescription: {
-      fontSize: theme.fontSizes.base,
-      ...theme.fontStyles.regular,
-      color: theme.color.appTextSecondary,
-      textAlign: "center",
+    brandingText: {
+      fontSize: theme.fontSizes.xs,
+      ...theme.fontStyles.medium,
+      color: theme.colors.text.secondary,
+      opacity: 0.7,
     },
   });
 
   return (
-    <View style={styles.container}>
+    <View style={componentStyles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <Text style={styles.title}>Welcome to RealStay</Text>
-      <Text style={styles.subtitle}>Choose how you want to use the app</Text>
+      <View style={componentStyles.header}>
+        <Text style={componentStyles.subtitle}>
+          Choose how you want to use the app
+        </Text>
+      </View>
 
-      <View style={styles.cardContainer}>
-        <TouchableOpacity
-          style={styles.card}
+      <View style={componentStyles.cardContainer}>
+        <AnimatedCard
+          icon={<User size={28} color={theme.colors.primary} weight="fill" />}
+          title="I'm a Guest"
+          description="Discover and book amazing places to stay for your next adventure"
           onPress={() => {
-            // while (router.canGoBack()) {
-            //   router.back();
-            // }
             router.replace({ pathname: "/" });
           }}
-        >
-          <View style={styles.cardIcon}>
-            <User size={32} color={theme.color.appPrimary} weight="fill" />
-          </View>
-          <Text style={styles.cardTitle}>I'm a Guest</Text>
-          <Text style={styles.cardDescription}>
-            Find and book amazing places to stay
-          </Text>
-        </TouchableOpacity>
+          theme={theme}
+          isPrimary={true}
+        />
 
-        <TouchableOpacity
-          style={styles.card}
+        <AnimatedCard
+          icon={<House size={28} color={theme.colors.primary} weight="fill" />}
+          title="I'm a Host"
+          description="List your property and start earning by hosting travelers"
           onPress={() => {
-            // while (router.canGoBack()) {
-            //   router.back();
-            // }
-
             router.replace({ pathname: "/agents" });
           }}
-        >
-          <View style={styles.cardIcon}>
-            <House size={32} color={theme.color.appPrimary} weight="fill" />
-          </View>
-          <Text style={styles.cardTitle}>I'm a Host</Text>
-          <Text style={styles.cardDescription}>
-            List your property and manage bookings
-          </Text>
-        </TouchableOpacity>
+          theme={theme}
+          isPrimary={false}
+        />
+      </View>
+
+      <View style={componentStyles.brandingContainer}>
+        <Text style={componentStyles.brandingText}>
+          Your journey starts here
+        </Text>
       </View>
     </View>
   );

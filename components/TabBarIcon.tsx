@@ -27,9 +27,9 @@ export default function TabBarIcon(props: {
   const theme = useTheme();
   const styles = {
     activeTab: {
-      borderColor: theme.color.appImageShade,
+      borderColor: theme.colors.appImageShade,
       borderWidth: StyleSheet.hairlineWidth,
-      color: theme.color.elementsButtonText,
+      color: theme.colors.elementsButtonText,
     },
   };
 

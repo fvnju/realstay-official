@@ -61,7 +61,7 @@ export default function Home() {
             justifyContent: "center",
             width: 8 * 8,
             height: 8 * 8,
-            backgroundColor: theme.color.appSurface,
+            backgroundColor: theme.colors.appSurface,
             marginTop: 24,
             borderCurve: "circular",
             borderRadius: 16 + 2,
@@ -71,35 +71,13 @@ export default function Home() {
             source="logo"
             contentFit="contain"
             style={{ height: 8 * 8 - 16, width: 8 * 8 - 16 }}
-            tintColor={theme.color.appPrimary}
+            tintColor={theme.colors.appPrimary}
           />
         </View>
 
         <View style={{ flex: 1 }} />
 
-        {Platform.select({
-          ios: <ShowcaseView />,
-          android: (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 24,
-                overflow: "hidden",
-              }}
-            >
-              <Image
-                source={"house1"}
-                style={{
-                  height: _itemHeight,
-                  width: _itemWidth,
-                  borderRadius: 24,
-                }}
-              />
-            </View>
-          ),
-        })}
+        <ShowcaseView />
       </View>
       <View style={{ paddingHorizontal: 8 * 3, height: "50%" }}>
         <Text style={[styles.title as TextStyle, { marginTop: 16 }]}>
@@ -110,7 +88,9 @@ export default function Home() {
           selling, renting, and investing in real estate
         </Text>
         <View style={{ flex: 1 }} />
-        <PrimaryButton onPress={toggleSheet}>Get Started</PrimaryButton>
+        <PrimaryButton style={theme.shadows.md} onPress={toggleSheet}>
+          Get Started
+        </PrimaryButton>
 
         <TouchableOpacity
           onPress={_handlePrivacyPolicy}
@@ -161,7 +141,7 @@ export default function Home() {
               fontSize: theme.fontSizes.sm,
               ...theme.fontStyles.medium,
               textDecorationLine: "underline",
-              color: theme.color.appTextSecondary,
+              color: theme.colors.appTextSecondary,
               textAlign: "center",
               marginTop: theme.margins.sm,
             }}
@@ -204,7 +184,7 @@ function BottomSheetInnards({ closeFunc }: { closeFunc: () => void }) {
         borderTopRightRadius: 40,
         padding: 24,
         height: 80 * 4,
-        backgroundColor: theme.color.appSurface,
+        backgroundColor: theme.colors.appSurface,
         paddingBottom: 32 + 8,
       }}
     >
@@ -246,30 +226,54 @@ const styleSheet = () => {
       fontSize: theme.fontSizes.sm,
       ...theme.fontStyles.medium,
       textDecorationLine: "underline",
-      color: theme.color.appTextSecondary,
+      color: theme.colors.appTextSecondary,
       textAlign: "center",
       marginTop: theme.margins.sm,
     },
     title: {
-      fontSize: theme.fontSizes.xl_4,
-      lineHeight: theme.fontSizes.xl_4 + theme.margins.sm,
+      fontSize: theme.fontSizes.h1,
+      lineHeight: theme.fontSizes.h1 + theme.margins.sm,
       ...theme.fontStyles.bold,
       textAlign: "center",
-      letterSpacing: theme.letterSpacing.tight * theme.fontSizes.xl_4,
-      color: theme.color.appTextPrimary,
+      letterSpacing: theme.letterSpacing.tight * theme.fontSizes.h1,
+      color: theme.colors.appTextPrimary,
     },
     caption: {
       ...theme.fontStyles.regular,
       lineHeight: theme.fontSizes.base + 8,
       fontSize: theme.fontSizes.base,
-      color: theme.color.appTextSecondary,
+      color: theme.colors.appTextSecondary,
       textAlign: "center",
       letterSpacing: theme.letterSpacing.tight * theme.fontSizes.base,
       marginTop: theme.margins.lg,
     },
     icon: {
-      color: theme.color.appPrimary,
-      backgroundColor: theme.color.appBackground,
+      color: theme.colors.appPrimary,
+      backgroundColor: theme.colors.appBackground,
     },
   };
 };
+
+// {Platform.select({
+//   ios: <ShowcaseView />,
+//   android: (
+//     <View
+//       style={{
+//         flexDirection: "row",
+//         alignItems: "center",
+//         justifyContent: "center",
+//         borderRadius: 24,
+//         overflow: "hidden",
+//       }}
+//     >
+//       <Image
+//         source={"house1"}
+//         style={{
+//           height: _itemHeight,
+//           width: _itemWidth,
+//           borderRadius: 24,
+//         }}
+//       />
+//     </View>
+//   ),
+// })}

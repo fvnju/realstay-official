@@ -1,6 +1,6 @@
+import { useTheme } from "@/hooks/useTheme";
 import { forwardRef, ReactNode } from "react";
 import {
-  StyleSheet,
   Text,
   TextStyle,
   TouchableOpacity,
@@ -8,8 +8,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import Svg, { SvgProps, G, Path, Defs, ClipPath } from "react-native-svg";
-import { useTheme } from "@/hooks/useTheme";
+import Svg, { ClipPath, Defs, G, Path, SvgProps } from "react-native-svg";
 
 type ButtonProps = {
   children?: ReactNode | string;
@@ -28,7 +27,7 @@ const Button = forwardRef<View, ButtonProps>(
         {children}
       </TouchableOpacity>
     );
-  },
+  }
 );
 
 const stylesheet = () => {
@@ -42,11 +41,11 @@ const stylesheet = () => {
       paddingVertical: 16,
       width: "100%",
       borderWidth: 1,
-      borderColor: theme.color.appSecondary,
+      borderColor: theme.colors.appSecondary,
       gap: 8,
     } as ViewStyle,
     buttonText: {
-      color: theme.color.appTextPrimary,
+      color: theme.colors.appTextPrimary,
       fontSize: theme.fontSizes.base,
       ...theme.fontStyles.medium,
       letterSpacing: theme.letterSpacing.bitTight * theme.fontSizes.base,
@@ -115,7 +114,7 @@ const OAuthButtons = {
           <Text style={styles.buttonText}>Continue with Google</Text>
         </TouchableOpacity>
       );
-    },
+    }
   ),
   Apple: forwardRef<View, ButtonProps>(
     ({ children, ...touchableProps }, ref) => {
@@ -131,7 +130,7 @@ const OAuthButtons = {
           <Text style={styles.buttonText}>Continue with Apple</Text>
         </TouchableOpacity>
       );
-    },
+    }
   ),
 };
 

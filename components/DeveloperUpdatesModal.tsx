@@ -1,6 +1,16 @@
+import { useTheme } from "@/hooks/useTheme";
+import { BlurView } from "expo-blur";
 import * as SecureStore from "expo-secure-store";
-import React from "react";
+import React, { useEffect } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
 interface UpdateItem {
   id: string;
@@ -25,106 +35,374 @@ const DeveloperUpdatesModal: React.FC<DeveloperUpdatesModalProps> = ({
   version = "0.1.0",
   alwaysShow = false,
 }) => {
-  const getTypeColor = (type: UpdateItem["type"]) => {
-    switch (type) {
-      case "feature":
-        return "#4CAF50";
-      case "bugfix":
-        return "#FF9800";
-      case "info":
-        return "#2196F3";
-      case "warning":
-        return "#F44336";
-      default:
-        return "#757575";
-    }
-  };
+  const theme = useTheme();
 
-  const getTypeIcon = (type: UpdateItem["type"]) => {
+  // Animation values
+  const overlayOpacity = useSharedValue(0);
+  const modalScale = useSharedValue(0.8);
+  const modalOpacity = useSharedValue(0);
+  const headerSlide = useSharedValue(-50);
+  const contentSlide = useSharedValue(30);
+
+  // Animated styles
+  const overlayAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: overlayOpacity.value,
+  }));
+
+  const modalAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: modalOpacity.value,
+    transform: [{ scale: modalScale.value }],
+  }));
+
+  const headerAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: modalOpacity.value,
+    transform: [{ translateY: headerSlide.value }],
+  }));
+
+  const contentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: modalOpacity.value,
+    transform: [{ translateY: contentSlide.value }],
+  }));
+
+  // Entrance animation
+  useEffect(() => {
+    if (visible) {
+      overlayOpacity.value = withTiming(1, { duration: 300 });
+      modalOpacity.value = withTiming(1, { duration: 400 });
+      modalScale.value = withSpring(1, {
+        damping: 15,
+        stiffness: 200,
+      });
+      headerSlide.value = withDelay(
+        100,
+        withSpring(0, { damping: 15, stiffness: 150 })
+      );
+      contentSlide.value = withDelay(
+        200,
+        withSpring(0, { damping: 15, stiffness: 150 })
+      );
+    } else {
+      overlayOpacity.value = withTiming(0, { duration: 200 });
+      modalOpacity.value = withTiming(0, { duration: 200 });
+      modalScale.value = withTiming(0.8, { duration: 200 });
+      headerSlide.value = withTiming(-50, { duration: 200 });
+      contentSlide.value = withTiming(30, { duration: 200 });
+    }
+  }, [visible]);
+
+  const getTypeConfig = (type: UpdateItem["type"]) => {
     switch (type) {
       case "feature":
-        return "✨";
+        return {
+          color: theme.colors.status.success,
+          backgroundColor: theme.colors.status.success + "20",
+          icon: "✨",
+          label: "NEW",
+        };
       case "bugfix":
-        return "🔧";
+        return {
+          color: theme.colors.status.warning,
+          backgroundColor: theme.colors.status.warning + "20",
+          icon: "🔧",
+          label: "FIX",
+        };
       case "info":
-        return "ℹ️";
+        return {
+          color: theme.colors.status.info,
+          backgroundColor: theme.colors.status.info + "20",
+          icon: "💡",
+          label: "INFO",
+        };
       case "warning":
-        return "⚠️";
+        return {
+          color: theme.colors.status.error,
+          backgroundColor: theme.colors.status.error + "20",
+          icon: "⚠️",
+          label: "ALERT",
+        };
       default:
-        return "📝";
+        return {
+          color: theme.colors.text.secondary,
+          backgroundColor: theme.colors.surfaceSecondary,
+          icon: "📝",
+          label: "NOTE",
+        };
     }
   };
 
   const handleClose = async () => {
+    // Exit animation
+    overlayOpacity.value = withTiming(0, { duration: 200 });
+    modalOpacity.value = withTiming(0, { duration: 200 });
+    modalScale.value = withTiming(0.9, { duration: 200 });
+
     // Only store "seen" flag if not in "always show" mode
     if (!alwaysShow) {
       await SecureStore.setItemAsync(`updates_seen_${version}`, "true");
     }
-    onClose();
+
+    setTimeout(() => {
+      onClose();
+    }, 200);
   };
 
   return (
     <Modal
       visible={visible}
-      animationType="fade"
+      animationType="none"
       transparent={true}
       onRequestClose={handleClose}
+      statusBarTranslucent
     >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          <View style={styles.modal}>
-            <View style={styles.header}>
-              <Text style={styles.title}>What's New</Text>
-              <Text style={styles.version}>Version {version}</Text>
-            </View>
+      <Animated.View style={[styles.overlay, overlayAnimatedStyle]}>
+        <BlurView intensity={20} style={StyleSheet.absoluteFill} />
 
-            {updates.map((update) => (
-              <View key={update.id} style={styles.updateItem}>
-                <View style={styles.updateHeader}>
-                  <View style={styles.typeContainer}>
-                    <Text style={styles.typeIcon}>
-                      {getTypeIcon(update.type)}
-                    </Text>
-                    <View
+        <View style={styles.container}>
+          <Animated.View
+            style={[
+              styles.modal,
+              modalAnimatedStyle,
+              { backgroundColor: theme.colors.surface },
+            ]}
+          >
+            {/* Enhanced Header */}
+            <Animated.View
+              style={[
+                styles.header,
+                headerAnimatedStyle,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
+              <View style={styles.headerContent}>
+                <View style={styles.titleContainer}>
+                  <Text style={styles.emoji}>🎉</Text>
+                  <View>
+                    <Text
                       style={[
-                        styles.typeBadge,
-                        { backgroundColor: getTypeColor(update.type) },
+                        styles.title,
+                        { color: theme.colors.text.primary },
+                        theme.fontStyles.bold,
                       ]}
                     >
-                      <Text style={styles.typeText}>
-                        {update.type.toUpperCase()}
+                      What's New
+                    </Text>
+                    <View style={styles.versionContainer}>
+                      <View
+                        style={[
+                          styles.versionBadge,
+                          { backgroundColor: theme.colors.surfaceSecondary },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.versionText,
+                            { color: theme.colors.text.secondary },
+                            theme.fontStyles.semiBold,
+                          ]}
+                        >
+                          v{version}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.versionLabel,
+                          { color: theme.colors.text.secondary },
+                        ]}
+                      >
+                        Latest Update
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.date}>
-                    {"unkown date" /* update.date */}
-                  </Text>
                 </View>
-                <Text style={styles.updateTitle}>{update.title}</Text>
-                <Text style={styles.updateDescription}>
-                  {update.description}
-                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.closeIconButton,
+                    { backgroundColor: theme.colors.surfaceSecondary },
+                  ]}
+                  onPress={handleClose}
+                >
+                  <Text
+                    style={[
+                      styles.closeIcon,
+                      { color: theme.colors.text.secondary },
+                    ]}
+                  >
+                    ✕
+                  </Text>
+                </TouchableOpacity>
               </View>
-            ))}
+            </Animated.View>
 
-            <View style={styles.footer}>
+            {/* Enhanced Content */}
+            <Animated.View
+              style={[
+                styles.content,
+                contentAnimatedStyle,
+                { backgroundColor: theme.colors.background },
+              ]}
+            >
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                style={styles.scrollView}
+              >
+                {updates.map((update, index) => {
+                  const typeConfig = getTypeConfig(update.type);
+
+                  // Individual item animation
+                  const itemOpacity = useSharedValue(0);
+                  const itemSlide = useSharedValue(20);
+
+                  useEffect(() => {
+                    if (visible) {
+                      itemOpacity.value = withDelay(
+                        300 + index * 100,
+                        withTiming(1, { duration: 400 })
+                      );
+                      itemSlide.value = withDelay(
+                        300 + index * 100,
+                        withSpring(0, { damping: 15, stiffness: 150 })
+                      );
+                    }
+                  }, [visible, index]);
+
+                  const itemAnimatedStyle = useAnimatedStyle(() => ({
+                    opacity: itemOpacity.value,
+                    transform: [{ translateY: itemSlide.value }],
+                  }));
+
+                  return (
+                    <Animated.View
+                      key={update.id}
+                      style={[styles.updateItem, itemAnimatedStyle]}
+                    >
+                      <View
+                        style={[
+                          styles.updateCard,
+                          {
+                            backgroundColor: theme.colors.surface,
+                            borderColor: theme.colors.border,
+                            shadowColor: theme.colors.shadow,
+                          },
+                        ]}
+                      >
+                        <View style={styles.updateHeader}>
+                          <View style={styles.typeContainer}>
+                            <View
+                              style={[
+                                styles.iconContainer,
+                                { backgroundColor: typeConfig.backgroundColor },
+                              ]}
+                            >
+                              <Text style={styles.typeIcon}>
+                                {typeConfig.icon}
+                              </Text>
+                            </View>
+                            <View>
+                              <View
+                                style={[
+                                  styles.typeBadge,
+                                  { backgroundColor: typeConfig.color },
+                                ]}
+                              >
+                                <Text style={styles.typeText}>
+                                  {typeConfig.label}
+                                </Text>
+                              </View>
+                              <Text
+                                style={[
+                                  styles.updateTitle,
+                                  { color: theme.colors.text.primary },
+                                  theme.fontStyles.semiBold,
+                                ]}
+                              >
+                                {update.title}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.dateContainer}>
+                            <Text
+                              style={[
+                                styles.date,
+                                { color: theme.colors.text.secondary },
+                              ]}
+                            >
+                              {new Date(update.date).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <Text
+                          style={[
+                            styles.updateDescription,
+                            { color: theme.colors.text.secondary },
+                          ]}
+                        >
+                          {update.description}
+                        </Text>
+                      </View>
+                    </Animated.View>
+                  );
+                })}
+              </ScrollView>
+            </Animated.View>
+
+            {/* Enhanced Footer */}
+            <Animated.View
+              style={[
+                styles.footer,
+                contentAnimatedStyle,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderTopColor: theme.colors.border,
+                },
+              ]}
+            >
               <TouchableOpacity
-                style={styles.closeButton}
+                style={[
+                  styles.closeButton,
+                  {
+                    backgroundColor: theme.colors.primary,
+                    shadowColor: theme.colors.primary,
+                  },
+                ]}
                 onPress={handleClose}
               >
-                <Text style={styles.closeButtonText}>Got it!</Text>
+                <Text
+                  style={[styles.closeButtonText, theme.fontStyles.semiBold]}
+                >
+                  Awesome, got it!
+                </Text>
               </TouchableOpacity>
-            </View>
-          </View>
+
+              {!alwaysShow && (
+                <Text
+                  style={[
+                    styles.footerNote,
+                    { color: theme.colors.text.secondary },
+                  ]}
+                >
+                  This won't show again for this version
+                </Text>
+              )}
+            </Animated.View>
+          </Animated.View>
         </View>
-      </View>
+      </Animated.View>
     </Modal>
   );
 };
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#000000B3",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -133,106 +411,184 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    minHeight: 700,
+    paddingVertical: 60,
+    width: "105%",
   },
   modal: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 24,
     width: "100%",
-    maxWidth: 400,
-    maxHeight: "80%",
-    shadowColor: "#000",
+    maxWidth: 420,
+    height: "80%", // Fixed height instead of maxHeight
+    shadowOffset: {
+      width: 0,
+      height: 20,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 25,
+    elevation: 20,
+    overflow: "hidden",
+  },
+
+  // Header Styles
+  header: {
+    paddingTop: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+  },
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  emoji: {
+    fontSize: 32,
+    marginRight: 16,
+  },
+  title: {
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  versionContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  versionBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  versionText: {
+    fontSize: 12,
+  },
+  versionLabel: {
+    fontSize: 12,
+  },
+  closeIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  closeIcon: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  // Content Styles
+  content: {
+    flex: 1, // This allows the content to expand
+  },
+  scrollView: {
+    flex: 1, // This ensures ScrollView takes full available height
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    flexGrow: 1, // This allows content to grow if needed
+  },
+  updateItem: {
+    marginBottom: 16,
+  },
+  updateCard: {
+    borderRadius: 16,
+    padding: 20,
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    paddingHorizontal: 16,
-  },
-  header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333333",
-    marginBottom: 4,
-  },
-  version: {
-    fontSize: 14,
-    color: "#666666",
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    height: 600,
-  },
-  updateItem: {
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
   },
   updateHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+    alignItems: "flex-start",
+    marginBottom: 12,
   },
   typeContainer: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
   typeIcon: {
-    fontSize: 16,
-    marginRight: 8,
+    fontSize: 18,
   },
   typeBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 4,
+    alignSelf: "flex-start",
   },
   typeText: {
     fontSize: 10,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: "#FFFFFF",
-  },
-  date: {
-    fontSize: 12,
-    color: "#999999",
+    letterSpacing: 0.5,
   },
   updateTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333333",
-    marginBottom: 4,
+    lineHeight: 22,
+  },
+  dateContainer: {
+    alignItems: "flex-end",
+  },
+  date: {
+    fontSize: 12,
+    fontWeight: "500",
   },
   updateDescription: {
     fontSize: 14,
-    color: "#666666",
-    lineHeight: 20,
+    lineHeight: 22,
+    marginTop: 4,
   },
+
+  // Footer Styles
   footer: {
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
   },
   closeButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
     alignItems: "center",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   closeButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600",
+  },
+  footerNote: {
+    textAlign: "center",
+    fontSize: 12,
+    marginTop: 12,
+    fontStyle: "italic",
   },
 });
 

@@ -1,21 +1,21 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  TouchableOpacity,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 import { ServerStatus } from "@/utils/serverWarmup";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  Easing,
-} from "react-native-reanimated";
 import { BlurView } from "expo-blur";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ServerWarmupOverlayProps {
   status: ServerStatus;
@@ -106,22 +106,27 @@ const ServerWarmupOverlay: React.FC<ServerWarmupOverlayProps> = ({
     >
       <BlurView intensity={50} style={styles.blurContainer}>
         <View style={styles.contentContainer}>
-          <ActivityIndicator size="large" color={theme.color.appTextAccent} />
+          <ActivityIndicator size="large" color={theme.colors.appTextAccent} />
 
-          <Text style={[styles.message, { color: theme.color.appTextPrimary }]}>
+          <Text
+            style={[styles.message, { color: theme.colors.appTextPrimary }]}
+          >
             {statusMessage}
           </Text>
 
           {status === "warming-up" && (
             <Text
-              style={[styles.timeText, { color: theme.color.appTextSecondary }]}
+              style={[
+                styles.timeText,
+                { color: theme.colors.appTextSecondary },
+              ]}
             >
               Elapsed time: {formatTime(elapsedTime)}
             </Text>
           )}
 
           <Text
-            style={[styles.subText, { color: theme.color.appTextSecondary }]}
+            style={[styles.subText, { color: theme.colors.appTextSecondary }]}
           >
             {status === "warming-up"
               ? "Free tier servers take time to wake up after being inactive"
@@ -132,7 +137,7 @@ const ServerWarmupOverlay: React.FC<ServerWarmupOverlayProps> = ({
             <TouchableOpacity
               style={[
                 styles.retryButton,
-                { backgroundColor: theme.color.appTextAccent },
+                { backgroundColor: theme.colors.appTextAccent },
               ]}
               onPress={onRetry}
             >

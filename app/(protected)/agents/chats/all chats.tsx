@@ -1,15 +1,25 @@
-import ENDPOINT from "@/constants/endpoint";
 import { useQuery } from "@tanstack/react-query";
-import dayjs from "dayjs";
 import { useRouter } from "expo-router";
 import { fetch } from "expo/fetch";
 import { useAtomValue } from "jotai";
-import { Checks } from "phosphor-react-native";
-import { Text, TouchableOpacity, View } from "react-native";
+import { ChatCircle, Checks, User } from "phosphor-react-native";
+import React, { useCallback, useMemo } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { toast } from "sonner-native";
 
+import ENDPOINT from "@/constants/endpoint";
+import { createThemedStyles } from "@/constants/themes";
 import { useTheme } from "@/hooks/useTheme";
 import { jwtAtom } from "@/utils/jwt";
-import { toast } from "sonner-native";
+import dayjs from "dayjs";
+import { FlatList } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface UserDetails {
   _id: string;
@@ -26,215 +36,446 @@ interface UserDetails {
   image_url: string;
 }
 
-async function getUserDetails(token: string, id: string): Promise<UserDetails> {
-  const response = await fetch(`${ENDPOINT}/users/${id}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "*/*",
-      "User-Agent": "RealStayApp",
-    },
+// API functions
+const getUserDetails = async (
+  token: string,
+  id: string
+): Promise<UserDetails> => {
+  try {
+    const response = await fetch(`${ENDPOINT}/users/${id}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "*/*",
+        "User-Agent": "RealStayApp",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to fetch user details: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.data.user as UserDetails;
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+    throw error;
+  }
+};
+
+const getAllMessages = async (token: string): Promise<ChatRoom[]> => {
+  try {
+    const response = await fetch(`${ENDPOINT}/chat/messages`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "*/*",
+        "User-Agent": "RealStayApp",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to fetch messages: ${response.status}`);
+    }
+
+    const data = await response.json();
+    // TODO: Replace with actual data when API is ready
+    return [] as ChatRoom[];
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    toast.error("Failed to load chats");
+    throw error;
+  }
+};
+
+// Loading Component
+const LoadingScreen = ({ theme }: { theme: any }) => {
+  const styles = createThemedStyles(theme);
+  const componentStyles = createComponentStyles(theme);
+
+  return (
+    <View style={componentStyles.centerContainer}>
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+      <Text style={[styles.textSecondary, { marginTop: 16 }]}>
+        Loading chats...
+      </Text>
+    </View>
+  );
+};
+
+// Error Component
+const ErrorScreen = ({
+  error,
+  onRetry,
+  theme,
+}: {
+  error: Error;
+  onRetry: () => void;
+  theme: any;
+}) => {
+  const styles = createThemedStyles(theme);
+  const componentStyles = createComponentStyles(theme);
+
+  return (
+    <View style={componentStyles.centerContainer}>
+      <Text style={[styles.text, { marginBottom: 16, textAlign: "center" }]}>
+        Failed to load chats
+      </Text>
+      <TouchableOpacity
+        style={componentStyles.retryButton}
+        onPress={onRetry}
+        activeOpacity={0.7}
+      >
+        <Text style={componentStyles.retryButtonText}>Try Again</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+// Empty State Component
+const EmptyState = ({ theme }: { theme: any }) => {
+  const componentStyles = createComponentStyles(theme);
+
+  return (
+    <View style={componentStyles.emptyContainer}>
+      <View style={componentStyles.emptyIconContainer}>
+        <ChatCircle
+          size={64}
+          color={theme.colors.text.secondary}
+          weight="light"
+        />
+      </View>
+      <Text style={componentStyles.emptyTitle}>No conversations yet</Text>
+      <Text style={componentStyles.emptySubtitle}>
+        Start a conversation with property owners or guests
+      </Text>
+    </View>
+  );
+};
+
+export default function ChatsScreen() {
+  const { top } = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = createThemedStyles(theme);
+  const componentStyles = createComponentStyles(theme);
+  const token = useAtomValue(jwtAtom);
+
+  // Fetch chats
+  const {
+    data: chats,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["allChats"],
+    queryFn: () => getAllMessages(token!),
+    enabled: !!token,
+    retry: 2,
+    staleTime: 30000, // 30 seconds
   });
 
-  if (!response.ok) {
-    throw new Error(
-      `HTTP error! status: ${response.status}. ${JSON.stringify(
-        await response.json()
-      )}`
+  // Fetch user details for each chat sender
+  const { data: userData, isLoading: userDataLoading } = useQuery({
+    queryKey: ["userDetails", chats?.map((chat) => chat.senderId)],
+    queryFn: async () => {
+      if (!chats?.length) return [];
+
+      const uniqueSenderIds = [...new Set(chats.map((chat) => chat.senderId))];
+      return Promise.all(
+        uniqueSenderIds.map((id) => getUserDetails(token!, id))
+      );
+    },
+    enabled: !!token && !!chats?.length,
+  });
+
+  // Combine chat data with user details
+  const chatData = useMemo(() => {
+    if (!chats || !userData) return [];
+
+    return chats.map((chat) => ({
+      ...chat,
+      senderDetails: userData.find((user) => user._id === chat.senderId),
+    }));
+  }, [chats, userData]);
+
+  const handleRetry = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  const renderChatItem = useCallback(
+    ({ item }: { item: ChatItemData }) => (
+      <ChatItem chat={item} theme={theme} />
+    ),
+    [theme]
+  );
+
+  const keyExtractor = useCallback((item: ChatItemData) => item._id, []);
+
+  if (isLoading || userDataLoading) {
+    return <LoadingScreen theme={theme} />;
+  }
+
+  if (error) {
+    return (
+      <ErrorScreen error={error as Error} onRetry={handleRetry} theme={theme} />
     );
   }
 
-  const data = await response.json();
-  console.log(data);
-  return data.data.user as UserDetails;
+  return (
+    <View style={[styles.container, { paddingTop: top + 16 }]}>
+      {/* <View style={componentStyles.header}>
+        <Text style={componentStyles.headerTitle}>Messages</Text>
+      </View> */}
+
+      {chatData.length === 0 ? (
+        <EmptyState theme={theme} />
+      ) : (
+        <FlatList
+          data={chatData}
+          renderItem={renderChatItem}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={componentStyles.listContainer}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => (
+            <View style={componentStyles.separator} />
+          )}
+        />
+      )}
+    </View>
+  );
 }
 
+// Chat Item Component
+const ChatItem = ({ chat, theme }: { chat: ChatItemData; theme: any }) => {
+  const router = useRouter();
+  const componentStyles = createComponentStyles(theme);
+
+  const handlePress = useCallback(() => {
+    router.push(`/chat/${chat.senderId}` as any);
+  }, [router, chat.senderId]);
+
+  const displayName = chat.senderDetails
+    ? `${chat.senderDetails.first_name} ${chat.senderDetails.last_name}`
+    : "Unknown User";
+
+  const formattedTime = dayjs(chat.timestamp).format("h:mm A");
+  const isToday = dayjs(chat.timestamp).isSame(dayjs(), "day");
+  const displayTime = isToday
+    ? formattedTime
+    : dayjs(chat.timestamp).format("MMM D");
+
+  return (
+    <TouchableOpacity
+      style={componentStyles.chatItem}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
+      {/* Avatar */}
+      <View style={componentStyles.avatar}>
+        {chat.senderDetails?.image_url ? (
+          // TODO: Add Image component when image URLs are available
+          <View style={componentStyles.avatarPlaceholder}>
+            <User size={24} color={theme.colors.text.inverse} weight="fill" />
+          </View>
+        ) : (
+          <View style={componentStyles.avatarPlaceholder}>
+            <Text style={componentStyles.avatarText}>
+              {displayName
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .toUpperCase()}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Content */}
+      <View style={componentStyles.chatContent}>
+        <Text numberOfLines={1} style={componentStyles.chatName}>
+          {displayName}
+        </Text>
+
+        <View style={componentStyles.messageRow}>
+          {chat.read && (
+            <Checks
+              weight="light"
+              size={14}
+              color={theme.colors.text.secondary}
+            />
+          )}
+          <Text numberOfLines={1} style={componentStyles.lastMessage}>
+            {chat.content || "No message"}
+          </Text>
+        </View>
+      </View>
+
+      {/* Time and Status */}
+      <View style={componentStyles.chatMeta}>
+        <Text style={componentStyles.timeText}>{displayTime}</Text>
+
+        {!chat.read && <View style={componentStyles.unreadIndicator} />}
+      </View>
+    </TouchableOpacity>
+  );
+};
+// Types
 interface ChatRoom {
   _id: string;
   messageId: string;
   senderId: string;
   receiverId: string;
-  sender: any;
-  receiver: any;
+  sender?: UserDetails;
+  receiver?: UserDetails;
   content: string;
-  fileUrl: any;
-  fileType: any;
+  fileUrl?: string;
+  fileType?: string;
   timestamp: string;
   read: boolean;
-  readAt: any;
+  readAt?: string;
 }
 
-async function getAllMessages(token: string): Promise<ChatRoom[] | null> {
-  const response = await fetch(`${ENDPOINT}/chat/messages`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "*/*",
-      "User-Agent": "RealStayApp",
+interface ChatItemData extends ChatRoom {
+  senderDetails?: UserDetails;
+}
+
+// Component styles
+const createComponentStyles = (theme: any) =>
+  StyleSheet.create({
+    centerContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 24,
+    },
+    header: {
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors?.border || "#e5e5ea",
+    },
+    headerTitle: {
+      ...theme.fontStyles.semiBold,
+      fontSize: theme.fontSizes?.h2 || 28,
+      color: theme.colors?.text?.primary || "#000",
+      letterSpacing:
+        (theme.letterSpacing?.tight || -0.02) * (theme.fontSizes?.h2 || 28),
+    },
+    listContainer: {
+      paddingHorizontal: 16,
+      paddingTop: 16,
+    },
+    chatItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 12,
+      gap: 12,
+    },
+    avatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      overflow: "hidden",
+    },
+    avatarPlaceholder: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.colors?.primary || "#0078ff",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    avatarText: {
+      color: "#ffffff",
+      fontSize: theme.fontSizes?.base || 16,
+      ...theme.fontStyles.semiBold,
+    },
+    chatContent: {
+      flex: 1,
+      gap: 4,
+    },
+    chatName: {
+      fontSize: theme.fontSizes?.base || 16,
+      color: theme.colors?.text?.primary || "#000",
+      ...theme.fontStyles.medium,
+      lineHeight:
+        (theme.fontSizes?.base || 16) * (theme.lineHeights?.normal || 1.4),
+    },
+    messageRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    lastMessage: {
+      fontSize: theme.fontSizes?.sm || 14,
+      color: theme.colors?.text?.secondary || "#666",
+      ...theme.fontStyles.regular,
+      letterSpacing:
+        (theme.letterSpacing?.loose || 0.01) * (theme.fontSizes?.sm || 14),
+      lineHeight:
+        (theme.fontSizes?.sm || 14) * (theme.lineHeights?.normal || 1.4),
+      flex: 1,
+    },
+    chatMeta: {
+      alignItems: "flex-end",
+      gap: 8,
+      minWidth: 60,
+    },
+    timeText: {
+      fontSize: theme.fontSizes?.xs || 12,
+      color: theme.colors?.text?.secondary || "#666",
+      ...theme.fontStyles.regular,
+      lineHeight:
+        (theme.fontSizes?.xs || 12) * (theme.lineHeights?.normal || 1.4),
+    },
+    unreadIndicator: {
+      backgroundColor: theme.colors?.accent || "#ff9800",
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    separator: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: theme.colors?.border || "#e5e5ea",
+      marginLeft: 68, // Avatar width + gap
+      opacity: 0.5,
+    },
+    retryButton: {
+      backgroundColor: theme.colors?.primary || "#0078ff",
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: theme.borderRadius?.md || 8,
+    },
+    retryButtonText: {
+      color: "#ffffff",
+      fontSize: theme.fontSizes?.base || 16,
+      ...theme.fontStyles.semiBold,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 32,
+    },
+    emptyIconContainer: {
+      marginBottom: 24,
+      opacity: 0.6,
+    },
+    emptyTitle: {
+      fontSize: theme.fontSizes?.h3 || 24,
+      color: theme.colors?.text?.primary || "#000",
+      ...theme.fontStyles.semiBold,
+      textAlign: "center",
+      marginBottom: 8,
+    },
+    emptySubtitle: {
+      fontSize: theme.fontSizes?.base || 16,
+      color: theme.colors?.text?.secondary || "#666",
+      ...theme.fontStyles.regular,
+      textAlign: "center",
+      lineHeight:
+        (theme.fontSizes?.base || 16) * (theme.lineHeights?.relaxed || 1.6),
     },
   });
-
-  if (!response.ok) {
-    toast(
-      `HTTP error! status: ${response.status}. ${JSON.stringify(
-        await response.json()
-      )}`
-    );
-    return null;
-  }
-
-  const data = await response.json();
-  console.log(data);
-  return [] as ChatRoom[];
-}
-
-export default function Chats() {
-  const theme = useTheme();
-  const token = useAtomValue(jwtAtom);
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["allChats"],
-    queryFn: () => getAllMessages(token!),
-    enabled: !!token, // Only run the query if we have a token
-  });
-
-  // Fetch user details for each chat sender
-  const { data: userData, isLoading: userDataLoading } = useQuery({
-    queryKey: ["userDatas", data], // depend on senderIds
-    queryFn: async () => {
-      if (!data) return [];
-      return Promise.all(
-        data.map((item) => getUserDetails(token!, item.senderId))
-      );
-    },
-    enabled: !!token && !!data,
-  });
-
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Error: {error.message}</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: theme.color.appBackground,
-        paddingHorizontal: 16,
-        paddingTop: 32,
-        gap: 24,
-      }}
-    >
-      {([] as ChatRoom[]).map((chat, idx) => (
-        <ChatItem
-          time={dayjs(chat.timestamp).format("h:mm A")}
-          name={
-            userData?.[idx]
-              ? `${userData[idx].first_name} ${userData[idx].last_name}`
-              : "Unknown"
-          }
-          lastMessage={chat.content}
-          key={chat.senderId}
-          id={chat.senderId}
-        />
-      ))}
-    </View>
-  );
-}
-
-function ChatItem({
-  id,
-  lastMessage,
-  name,
-  time,
-}: {
-  id: string;
-  lastMessage: string;
-  name: string;
-  time: string;
-}) {
-  const theme = useTheme();
-  const router = useRouter();
-
-  return (
-    <TouchableOpacity
-      style={{ flexDirection: "row", gap: 8 }}
-      onPress={() => {
-        // @ts-ignore
-        router.push(`/chat/${id}`);
-      }}
-    >
-      <View
-        style={{
-          backgroundColor: "blue",
-          width: 56,
-          height: 56,
-          borderRadius: 999,
-        }}
-      />
-      <View style={{ flex: 1, gap: 4 }}>
-        <Text
-          numberOfLines={1}
-          style={{
-            fontSize: theme.fontSizes.base,
-            color: theme.color.appTextPrimary,
-            ...theme.fontStyles.medium,
-            lineHeight: 24,
-          }}
-        >
-          {name}
-        </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          <Checks
-            weight="light"
-            size={16}
-            color={theme.color.appTextSecondary}
-          />
-          <Text
-            numberOfLines={1}
-            style={{
-              fontSize: theme.fontSizes.sm,
-              color: theme.color.appTextSecondary,
-              ...theme.fontStyles.regular,
-              letterSpacing: theme.letterSpacing.loose * theme.fontSizes.sm,
-              lineHeight: 20,
-            }}
-          >
-            {lastMessage}
-          </Text>
-        </View>
-      </View>
-      <View style={{ alignItems: "flex-end", gap: 10 }}>
-        <Text
-          style={{
-            fontSize: theme.fontSizes.base,
-            color: theme.color.appTextSecondary,
-            ...theme.fontStyles.regular,
-            lineHeight: 24,
-          }}
-        >
-          {time}
-        </Text>
-        <View
-          style={{
-            backgroundColor: theme.color.appAccent,
-            width: 8,
-            height: 8,
-            borderRadius: 999,
-          }}
-        />
-      </View>
-    </TouchableOpacity>
-  );
-}

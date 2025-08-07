@@ -1,8 +1,8 @@
 import { useTheme } from "@/hooks/useTheme";
-import { router } from "expo-router";
 import { Plus } from "phosphor-react-native";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { toast } from "sonner-native";
 
 export default function ListingsPage() {
   const { top } = useSafeAreaInsets();
@@ -19,7 +19,7 @@ export default function ListingsPage() {
       >
         <Text
           style={[
-            { color: theme.color.appTextPrimary, fontSize: 26 },
+            { color: theme.colors.appTextPrimary, fontSize: 26 },
             theme.fontStyles.bold,
           ]}
         >
@@ -34,10 +34,11 @@ export default function ListingsPage() {
             alignItems: "center",
           }}
           onPress={() => {
-            router.push("/create_listing");
+            // router.push("/create_listing");
+            toast.error("This feature is not yet available");
           }}
         >
-          <Plus size={24} weight="bold" color={theme.color.appTextPrimary} />
+          <Plus size={24} weight="bold" color={theme.colors.appTextPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -46,7 +47,7 @@ export default function ListingsPage() {
           style={[
             {
               fontSize: 48,
-              color: theme.color.appTextPrimary,
+              color: theme.colors.appTextPrimary,
               textAlign: "center",
             },
             theme.fontStyles.bold,

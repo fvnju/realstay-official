@@ -13,7 +13,10 @@ export default function NotAvailableYet({
 
   return (
     <View
-      style={[styles.container, { backgroundColor: theme.color.appBackground }]}
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.appBackground },
+      ]}
     >
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.inner]}>
@@ -21,7 +24,7 @@ export default function NotAvailableYet({
           style={[
             theme.fontStyles.semiBold,
             styles.title,
-            { color: theme.color.appTextPrimary },
+            { color: theme.colors.appTextPrimary },
           ]}
         >
           Not Available Yet
@@ -30,7 +33,7 @@ export default function NotAvailableYet({
           style={[
             theme.fontStyles.regular,
             styles.message,
-            { color: theme.color.appTextSecondary },
+            { color: theme.colors.appTextSecondary },
           ]}
         >
           {message}
@@ -52,7 +55,7 @@ export default function NotAvailableYet({
           style={[
             theme.fontStyles.semiBold,
             {
-              color: theme.color.appTextPrimary,
+              color: theme.colors.appTextPrimary,
               textDecorationLine: "underline",
             },
           ]}
@@ -77,11 +80,6 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 20,
     backgroundColor: "#00000005",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
   },
   title: {
     fontSize: 22,

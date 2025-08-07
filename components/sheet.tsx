@@ -28,7 +28,7 @@ const Sheet = React.forwardRef<
         index={0}
         backgroundStyle={
           backgroundStyle ?? {
-            backgroundColor: colors.color.appSurface,
+            backgroundColor: colors.colors.appSurface,
           }
         }
         style={
@@ -40,7 +40,7 @@ const Sheet = React.forwardRef<
         }
         handleIndicatorStyle={
           handleIndicatorStyle ?? {
-            backgroundColor: colors.color.appDropShadow,
+            backgroundColor: colors.colors.appDropShadow,
           }
         }
         backdropComponent={renderBackdrop}

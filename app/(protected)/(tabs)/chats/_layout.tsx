@@ -1,12 +1,10 @@
-import type { DrawerNavigationProp } from "@react-navigation/drawer";
-import { useNavigation } from "@react-navigation/native";
 import { Drawer } from "expo-router/drawer";
 import {
   List,
   MagnifyingGlass,
   SlidersHorizontal,
 } from "phosphor-react-native";
-import { Pressable, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -18,17 +16,20 @@ export default function ChatsLayout() {
 
   return (
     <GestureHandlerRootView
-      style={{ flex: 1, backgroundColor: theme.color.appBackground }}
+      style={{ flex: 1, backgroundColor: theme.colors.appBackground }}
     >
       <Drawer
         screenOptions={({ navigation }) => ({
+          sceneStyle: {
+            backgroundColor: theme.colors.appBackground,
+          },
           header: (props) => (
             <View
               style={{
                 paddingTop: top + 8,
                 paddingHorizontal: 16,
                 flexDirection: "row",
-                backgroundColor: theme.color.appBackground,
+                backgroundColor: theme.colors.appBackground,
                 alignItems: "center",
               }}
             >
@@ -40,17 +41,17 @@ export default function ChatsLayout() {
                   <List
                     size={24}
                     weight="bold"
-                    color={theme.color.appTextPrimary}
+                    color={theme.colors.appTextPrimary}
                   />
                 </View>
                 <Text
                   style={{
-                    color: theme.color.appTextPrimary,
+                    color: theme.colors.appTextPrimary,
                     ...theme.fontStyles.semiBold,
-                    fontSize: theme.fontSizes.xl,
+                    fontSize: theme.fontSizes.h3,
                     //lineHeight: theme.fontSizes.xl_3,
                     letterSpacing:
-                      theme.letterSpacing.bitTight * theme.fontSizes.xl_3,
+                      theme.letterSpacing.bitTight * theme.fontSizes.h3,
                     marginLeft: 8,
                   }}
                 >
@@ -64,20 +65,20 @@ export default function ChatsLayout() {
                 <MagnifyingGlass
                   size={28}
                   weight="bold"
-                  color={theme.color.appTextPrimary}
+                  color={theme.colors.appTextPrimary}
                 />
               </TouchableOpacity>
               <TouchableOpacity style={{ padding: (48 - 28) / 2 }}>
                 <SlidersHorizontal
                   size={28}
                   weight="bold"
-                  color={theme.color.appTextPrimary}
+                  color={theme.colors.appTextPrimary}
                 />
               </TouchableOpacity>
             </View>
           ),
           drawerStyle: {
-            backgroundColor: theme.color.appBackground,
+            backgroundColor: theme.colors.appBackground,
           },
         })}
       >

@@ -1,7 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { atom, useAtom } from "jotai";
 import { Check } from "phosphor-react-native";
-import React, { useState } from "react";
+import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import z from "zod";
@@ -19,7 +19,7 @@ const hasLetterAndNumber = z.string().refine(
     const hasNumber = /[0-9]/.test(val);
     return hasLetter && hasNumber;
   },
-  { message: "Password must contain at least one letter and one number" },
+  { message: "Password must contain at least one letter and one number" }
 );
 
 // Validator for checking if string contains special characters
@@ -27,7 +27,7 @@ const hasSpecialCharacter = z.string().refine(
   (val) => {
     return /[!@#$%^&*(),.?":{}|<>]/.test(val);
   },
-  { message: "Password must contain at least one special character" },
+  { message: "Password must contain at least one special character" }
 );
 
 export default function CreatePassword() {
@@ -48,7 +48,7 @@ export default function CreatePassword() {
         paddingTop: 24,
         paddingBottom: bottom,
         flex: 1,
-        backgroundColor: theme.color.appBackground,
+        backgroundColor: theme.colors.appBackground,
         paddingHorizontal: 16,
       }}
     >
@@ -58,13 +58,13 @@ export default function CreatePassword() {
           headerTitle: () => <></>,
           headerShown: true,
           headerBackTitle: "Go back",
-          headerStyle: { backgroundColor: theme.color.appBackground },
+          headerStyle: { backgroundColor: theme.colors.appBackground },
           headerShadowVisible: false,
           headerBackTitleStyle: {
             ...theme.fontStyles.semiBold,
             fontSize: theme.fontSizes.lg,
           },
-          headerTintColor: theme.color.appTextSecondary,
+          headerTintColor: theme.colors.appTextSecondary,
           headerRight(props) {
             return (
               <TouchableOpacity
@@ -80,7 +80,7 @@ export default function CreatePassword() {
                   style={{
                     ...theme.fontStyles.semiBold,
                     fontSize: theme.fontSizes.lg,
-                    color: theme.color.appTextAccent,
+                    color: theme.colors.appTextAccent,
                   }}
                 >
                   Sign in
@@ -93,8 +93,8 @@ export default function CreatePassword() {
       <Text
         style={{
           ...theme.fontStyles.semiBold,
-          fontSize: theme.fontSizes.xl_4,
-          color: theme.color.appTextPrimary,
+          fontSize: theme.fontSizes.h1,
+          color: theme.colors.appTextPrimary,
         }}
       >
         Create a password
@@ -114,7 +114,7 @@ export default function CreatePassword() {
       <Text
         style={{
           marginTop: 24,
-          color: theme.color.appTextPrimary,
+          color: theme.colors.appTextPrimary,
           ...theme.fontStyles.semiBold,
           fontSize: theme.fontSizes.base,
         }}
@@ -128,14 +128,14 @@ export default function CreatePassword() {
             size={16}
             color={
               _password.length >= 8
-                ? theme.color.elementsOnlineIndicatorOnline
-                : `${theme.color.appTextSecondary}9A`
+                ? theme.colors.elementsOnlineIndicatorOnline
+                : `${theme.colors.appTextSecondary}9A`
             }
             weight="bold"
           />
           <Text
             style={{
-              color: theme.color.appTextSecondary,
+              color: theme.colors.appTextSecondary,
               ...theme.fontStyles.medium,
             }}
           >
@@ -149,14 +149,14 @@ export default function CreatePassword() {
             size={16}
             color={
               hasLetterAndNumber.safeParse(_password).success
-                ? theme.color.elementsOnlineIndicatorOnline
-                : `${theme.color.appTextSecondary}9A`
+                ? theme.colors.elementsOnlineIndicatorOnline
+                : `${theme.colors.appTextSecondary}9A`
             }
             weight="bold"
           />
           <Text
             style={{
-              color: theme.color.appTextSecondary,
+              color: theme.colors.appTextSecondary,
               ...theme.fontStyles.medium,
             }}
           >
@@ -170,14 +170,14 @@ export default function CreatePassword() {
             size={16}
             color={
               hasSpecialCharacter.safeParse(_password).success
-                ? theme.color.elementsOnlineIndicatorOnline
-                : `${theme.color.appTextSecondary}9A`
+                ? theme.colors.elementsOnlineIndicatorOnline
+                : `${theme.colors.appTextSecondary}9A`
             }
             weight="bold"
           />
           <Text
             style={{
-              color: theme.color.appTextSecondary,
+              color: theme.colors.appTextSecondary,
               ...theme.fontStyles.medium,
             }}
           >
@@ -191,14 +191,14 @@ export default function CreatePassword() {
           { marginTop: 80 },
           !isPasswordValid
             ? {
-                backgroundColor: theme.color.elementsButtonDisabled,
+                backgroundColor: theme.colors.elementsButtonDisabled,
                 shadowOpacity: 0,
               }
             : null,
         ]}
         textStyle={[
           !isPasswordValid
-            ? { color: theme.color.elementsButtonDisabledText }
+            ? { color: theme.colors.elementsButtonDisabledText }
             : {},
         ]}
         onPress={() => {

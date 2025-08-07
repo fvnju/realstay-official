@@ -64,7 +64,7 @@ export default function RootLayout() {
             <BottomSheetModalProvider>
               <View
                 style={{
-                  backgroundColor: theme.color.appBackground,
+                  backgroundColor: theme.colors.appBackground,
                   flex: 1,
                 }}
               >
@@ -76,9 +76,9 @@ export default function RootLayout() {
                     }),
                     fullScreenGestureEnabled: true,
                     headerShown: false,
-                    statusBarBackgroundColor: theme.color.appBackground,
+                    statusBarBackgroundColor: theme.colors.appBackground,
                     contentStyle: {
-                      backgroundColor: theme.color.appBackground,
+                      backgroundColor: theme.colors.appBackground,
                     },
                   }}
                 />
