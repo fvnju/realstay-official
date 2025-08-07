@@ -16,18 +16,18 @@ export default function PublishPage() {
         paddingTop: top + 12,
         paddingBottom: bottom,
         paddingHorizontal: 16,
-        backgroundColor: theme.color.appBackground,
+        backgroundColor: theme.colors.appBackground,
       }}
     >
       <Stack.Screen options={{ headerShown: false }} />
       <PrimaryButton
         style={{
-          backgroundColor: theme.color.appDropShadow,
+          backgroundColor: theme.colors.appDropShadow,
           alignSelf: "flex-start",
           width: "auto",
           paddingHorizontal: 24,
         }}
-        textStyle={{ color: theme.color.appTextPrimary }}
+        textStyle={{ color: theme.colors.appTextPrimary }}
         onPress={() => {
           while (router.canGoBack()) {
             router.back();
@@ -42,7 +42,7 @@ export default function PublishPage() {
             {
               marginTop: 40,
               fontSize: 38,
-              color: theme.color.appTextPrimary,
+              color: theme.colors.appTextPrimary,
               lineHeight: 40,
             },
             theme.fontStyles.bold,
@@ -55,13 +55,13 @@ export default function PublishPage() {
             {
               marginTop: 20,
               fontSize: 18,
-              color: theme.color.appTextSecondary,
+              color: theme.colors.appTextSecondary,
             },
             theme.fontStyles.regular,
           ]}
         >
-          Here’s what we will show your guest. Before you publish, make sure to
-          review the details
+          Here&apos;s what we will show your guest. Before you publish, make
+          sure to review the details
         </Text>
         <View
           style={{
@@ -83,10 +83,10 @@ export default function PublishPage() {
       <View style={{ flexDirection: "row", gap: 20, marginTop: 20 }}>
         <PrimaryButton
           style={{
-            backgroundColor: theme.color.appDropShadow,
+            backgroundColor: theme.colors.appDropShadow,
             flex: 1,
           }}
-          textStyle={{ color: theme.color.appTextPrimary }}
+          textStyle={{ color: theme.colors.appTextPrimary }}
           onPress={() => {
             router.back();
           }}

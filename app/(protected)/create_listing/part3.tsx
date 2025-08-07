@@ -43,7 +43,7 @@ export default function CreateLising3() {
   const theme = useTheme();
   const iconStyle: IconProps = {
     size: 32,
-    color: theme.color.appPrimary,
+    color: theme.colors.appPrimary,
     weight: "bold",
   };
   const houseTypes = useSharedValuesFromTexts([
@@ -76,18 +76,18 @@ export default function CreateLising3() {
         paddingTop: top + 12,
         paddingBottom: bottom,
         paddingHorizontal: 16,
-        backgroundColor: theme.color.appBackground,
+        backgroundColor: theme.colors.appBackground,
       }}
     >
       <Stack.Screen options={{ headerShown: false }} />
       <PrimaryButton
         style={{
-          backgroundColor: theme.color.appDropShadow,
+          backgroundColor: theme.colors.appDropShadow,
           alignSelf: "flex-start",
           width: "auto",
           paddingHorizontal: 24,
         }}
-        textStyle={{ color: theme.color.appTextPrimary }}
+        textStyle={{ color: theme.colors.appTextPrimary }}
         onPress={() => {
           Keyboard.dismiss();
           router.back();
@@ -102,7 +102,7 @@ export default function CreateLising3() {
           {
             marginTop: 40,
             fontSize: 38,
-            color: theme.color.appTextPrimary,
+            color: theme.colors.appTextPrimary,
             lineHeight: 40,
           },
           theme.fontStyles.bold,
@@ -115,7 +115,7 @@ export default function CreateLising3() {
           {
             marginTop: 20,
             fontSize: 18,
-            color: theme.color.appTextSecondary,
+            color: theme.colors.appTextSecondary,
           },
           theme.fontStyles.regular,
         ]}
@@ -140,10 +140,10 @@ export default function CreateLising3() {
       <View style={{ flexDirection: "row", gap: 20, marginTop: 20 }}>
         <PrimaryButton
           style={{
-            backgroundColor: theme.color.appDropShadow,
+            backgroundColor: theme.colors.appDropShadow,
             flex: 1,
           }}
-          textStyle={{ color: theme.color.appTextPrimary }}
+          textStyle={{ color: theme.colors.appTextPrimary }}
           onPress={() => {
             Keyboard.dismiss();
             router.back();
@@ -177,8 +177,8 @@ function ItemPill({
 }) {
   const theme = useTheme();
   const animatedStyles = useAnimatedStyle(() => ({
-    borderColor: selected.value ? theme.color.appPrimary : "#0078FF1A",
-    backgroundColor: selected.value ? "#0078FF1A" : theme.color.appSurface,
+    borderColor: selected.value ? theme.colors.appPrimary : "#0078FF1A",
+    backgroundColor: selected.value ? "#0078FF1A" : theme.colors.appSurface,
   }));
   const [isSelected, setIsSelected] =
     otherSharedValues[elementIndex].stateValue;
@@ -209,7 +209,7 @@ function ItemPill({
         {otherSharedValues[elementIndex].icon}
         <Text
           style={[
-            { fontSize: 18, color: theme.color.appTextPrimary },
+            { fontSize: 18, color: theme.colors.appTextPrimary },
             theme.fontStyles.semiBold,
           ]}
         >

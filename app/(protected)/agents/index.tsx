@@ -158,8 +158,8 @@ const HostDashboardScreen = ({
 
   const handleAddListing = useCallback(
     () => {
-      // router.push("/create_listing");
-      toast.error("This feature is not yet available");
+      router.push("/create_listing");
+      // toast.error("This feature is not yet available");
     },
     [
       /**router */
