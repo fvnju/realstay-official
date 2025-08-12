@@ -20,6 +20,9 @@ export default function ChatsLayout() {
     >
       <Drawer
         screenOptions={({ navigation }) => ({
+          sceneStyle: {
+            backgroundColor: theme.colors.appBackground,
+          },
           header: (props) => (
             <View
               style={{

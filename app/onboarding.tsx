@@ -1,17 +1,19 @@
+import { AnimatedSpinner } from "@/components/AnimatedSpinner";
 import OAuthButtons from "@/components/Button/OAuthButtons";
 import { PrimaryButton } from "@/components/Button/Primary";
 import { ShowcaseView } from "@/components/Marquee";
 import { Sheet, useSheetRef } from "@/components/sheet";
 import { useTheme } from "@/hooks/useTheme";
+import { featureFlag } from "@/utils/featureFlagConsts";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
-import { MenuComponentRef } from "@react-native-menu/menu";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { Link, Stack } from "expo-router";
+import { Link, Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import * as WebBrowser from "expo-web-browser";
 import { HandWaving } from "phosphor-react-native";
-import React, { useRef } from "react";
+import { useFeatureFlag } from "posthog-react-native";
+import React, { useCallback } from "react";
 import {
   Dimensions,
   Platform,
@@ -27,7 +29,11 @@ const _itemWidth = 0.62 * width;
 const _itemHeight = (_itemWidth * 9) / 16;
 
 export default function Home() {
-  const menuRef = useRef<MenuComponentRef>(null);
+  const useGoogleOauth = useFeatureFlag(featureFlag.useGoogleOath);
+  const useAppleOauth = useFeatureFlag(featureFlag.useAppleOath);
+  const useOauth = useGoogleOauth || useAppleOauth;
+
+  const router = useRouter();
   const theme = useTheme();
   const styles = styleSheet();
 
@@ -36,10 +42,14 @@ export default function Home() {
   };
   const { top, bottom } = useSafeAreaInsets();
   const sheetRef = useSheetRef();
-  const toggleSheet = async () => {
+  const toggleSheet = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-    sheetRef.current?.present();
-  };
+    if (useOauth) {
+      sheetRef.current?.present();
+    } else {
+      router.push("/email");
+    }
+  }, [useOauth]);
 
   return (
     <View
@@ -88,9 +98,14 @@ export default function Home() {
           selling, renting, and investing in real estate
         </Text>
         <View style={{ flex: 1 }} />
-        <PrimaryButton style={theme.shadows.md} onPress={toggleSheet}>
-          Get Started
-        </PrimaryButton>
+
+        {useGoogleOauth === undefined && useAppleOauth === undefined ? (
+          <AnimatedSpinner />
+        ) : (
+          <PrimaryButton style={theme.shadows.md} onPress={toggleSheet}>
+            {!useOauth ? "Continue with email" : "Get started"}
+          </PrimaryButton>
+        )}
 
         <TouchableOpacity
           onPress={_handlePrivacyPolicy}
@@ -168,6 +183,10 @@ export default function Home() {
 }
 
 function BottomSheetInnards({ closeFunc }: { closeFunc: () => void }) {
+  const useGoogleOauth = useFeatureFlag(featureFlag.useGoogleOath);
+  const useAppleOauth = useFeatureFlag(featureFlag.useAppleOath);
+  const { bottom } = useSafeAreaInsets();
+
   const theme = useTheme();
   const { privacyText, title, ...styles } = styleSheet();
 
@@ -183,12 +202,14 @@ function BottomSheetInnards({ closeFunc }: { closeFunc: () => void }) {
         borderTopLeftRadius: 40,
         borderTopRightRadius: 40,
         padding: 24,
-        height: 80 * 4,
+        // height: 80 * 4,
         backgroundColor: theme.colors.appSurface,
-        paddingBottom: 32 + 8,
+        // paddingBottom: 12 + bottom,
       }}
     >
-      <Text style={[title as TextStyle, { textAlign: "left" }]}>
+      <Text
+        style={[title as TextStyle, { textAlign: "left", marginBottom: 16 }]}
+      >
         Login or Sign Up
       </Text>
       <View
@@ -197,10 +218,15 @@ function BottomSheetInnards({ closeFunc }: { closeFunc: () => void }) {
           gap: 16,
           alignItems: "center",
           justifyContent: "center",
+          marginBottom: 16,
         }}
       >
-        <OAuthButtons.Apple onPress={_handleApple} activeOpacity={0.6} />
-        <OAuthButtons.Google onPress={_handleGoogle} activeOpacity={0.6} />
+        {useAppleOauth && (
+          <OAuthButtons.Apple onPress={_handleApple} activeOpacity={0.6} />
+        )}
+        {useGoogleOauth && (
+          <OAuthButtons.Google onPress={_handleGoogle} activeOpacity={0.6} />
+        )}
       </View>
       <Link
         onPress={() => {

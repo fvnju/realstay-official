@@ -13,31 +13,36 @@ interface UpdateItem {
 const CURRENT_UPDATES: UpdateItem[] = [
   {
     id: "1",
-    title: "Chat Interface disabled!!",
-    description:
-      "I disabled the chat pages due to api chages till further notice.",
-    type: "warning",
+    title: "Chat Interface has been re-enabled",
+    description: "Changes now reflect API update and with a new UI",
+    type: "info",
     date: "Dec 8, 2024",
   },
   {
     id: "2",
-    title: "Bug Fixes",
-    description:
-      "Fixed issues with profile page loading and improved app stability due to api changes.",
+    title: "Reserving a property",
+    description: "Reserving a property sends a message to the owner",
     type: "bugfix",
     date: "Dec 7, 2024",
   },
   {
     id: "3",
-    title: "Listing Upload not implemented",
+    title: "Listing Upload implemented",
     description:
-      "Listing upload is not implemented yet. I will implement it soon.",
-    type: "info",
+      "Listing upload has been implemented. Might be buggy due to state management",
+    type: "feature",
+    date: "Dec 6, 2024",
+  },
+  {
+    id: "4",
+    title: "Uploading pictures don't work for now",
+    description: "Upload api endpoint is down",
+    type: "warning",
     date: "Dec 6, 2024",
   },
 ];
 
-const CURRENT_VERSION = "0.1.0"; // Update this with your app version
+const CURRENT_VERSION = "0.1.2"; // Update this with your app version
 
 export const useDeveloperUpdates = () => {
   const [showModal, setShowModal] = useState(false);

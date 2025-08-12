@@ -95,7 +95,11 @@ const ListingCard: React.FC<ListingCardProps> = ({
         {/* Image Container */}
         <View style={componentStyles.imageContainer}>
           <Image
-            source={{ uri: imageUrl }}
+            source={{
+              uri:
+                imageUrl ||
+                "https://www.shutterstock.com/image-vector/bingo-lottery-balls-on-cards-600nw-2326447549.jpg",
+            }}
             style={componentStyles.image}
             contentFit="cover"
             transition={200}

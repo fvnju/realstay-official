@@ -173,7 +173,7 @@ export default function Profile() {
           try {
             await SecureStore.deleteItemAsync("user_info");
             await SecureStore.deleteItemAsync("access_token");
-            router.dismissTo("/email");
+            router.dismissTo("/onboarding");
             toast.success("Logged out successfully");
           } catch (error) {
             console.error("Logout error:", error);

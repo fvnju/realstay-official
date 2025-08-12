@@ -79,10 +79,7 @@ export default function EnterPassword() {
       if (userType === "host") {
         router.replace({ pathname: "/enterHost" });
       } else {
-        while (router.canGoBack()) {
-          router.back();
-        }
-        router.replace({ pathname: "/" });
+        router.replace("/");
       }
     } else if (!resp.ok) {
       // console.log(result);

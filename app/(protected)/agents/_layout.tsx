@@ -3,7 +3,13 @@ import { useTheme } from "@/hooks/useTheme";
 import { useFocusEffect } from "@react-navigation/native";
 import { Stack, Tabs } from "expo-router";
 import React from "react";
-import { BackHandler, Dimensions, Pressable, StyleSheet } from "react-native";
+import {
+  BackHandler,
+  Dimensions,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -21,7 +27,7 @@ export default function Layout() {
   const theme = useTheme();
 
   // Add platform-specific tab bar height
-  const tabBarHeight = 100; // Platform.OS === "android" ? 80 : 100;
+  const tabBarHeight = 80 + bottom; // Platform.OS === "android" ? 80 : 100;
 
   useFocusEffect(
     React.useCallback(() => {
@@ -81,14 +87,17 @@ export default function Layout() {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { ref, ...otherProps } = props;
             return (
-              <Pressable
-                style={{
-                  height: 40,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                {...otherProps}
-              />
+              <TouchableWithoutFeedback onPress={otherProps.onPress}>
+                <View
+                  style={{
+                    height: 40,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {otherProps.children}
+                </View>
+              </TouchableWithoutFeedback>
             );
           },
         }}

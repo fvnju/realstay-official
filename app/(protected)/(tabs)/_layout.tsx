@@ -8,9 +8,9 @@ import React from "react";
 import {
   BackHandler,
   Dimensions,
-  Platform,
-  Pressable,
   StyleSheet,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import {
   SafeAreaProvider,
@@ -30,7 +30,7 @@ export default function Layout() {
   const theme = useTheme();
 
   // Add platform-specific tab bar height
-  const tabBarHeight = 100; // Platform.OS === "android" ? 80 : 100;
+  const tabBarHeight = 80 + bottom; // Platform.OS === "android" ? 80 : 100;
 
   const avoid_redirect = useAtomValue(avoid_redirect_to_agent);
 
@@ -82,7 +82,7 @@ export default function Layout() {
               height: tabBarHeight,
               elevation: 0,
               paddingTop: 20,
-              paddingBottom: Platform.OS === "android" ? bottom : 0,
+              // paddingBottom: Platform.OS === "android" ? bottom : 0,
               paddingHorizontal: 12,
             },
           ],
@@ -96,18 +96,19 @@ export default function Layout() {
           freezeOnBlur: true,
           animation: "shift",
           tabBarButton: (props) => {
-            // Omit the ref from props to avoid the type issue
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { ref, ...otherProps } = props;
+            const { ref, children, ...otherProps } = props;
             return (
-              <Pressable
-                style={{
-                  height: 40,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                {...otherProps}
-              />
+              <TouchableWithoutFeedback onPress={otherProps.onPress}>
+                <View
+                  style={{
+                    height: 40,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {children}
+                </View>
+              </TouchableWithoutFeedback>
             );
           },
         }}

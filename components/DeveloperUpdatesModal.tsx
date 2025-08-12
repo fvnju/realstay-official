@@ -32,7 +32,7 @@ const DeveloperUpdatesModal: React.FC<DeveloperUpdatesModalProps> = ({
   visible,
   onClose,
   updates,
-  version = "0.1.0",
+  version = "0.1.2",
   alwaysShow = false,
 }) => {
   const theme = useTheme();

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { fetch } from "expo/fetch";
 import { useAtomValue } from "jotai";
 import { ChatCircle, Checks, User } from "phosphor-react-native";
 import React, { useCallback, useMemo } from "react";
@@ -13,9 +12,9 @@ import {
 } from "react-native";
 import { toast } from "sonner-native";
 
-import ENDPOINT from "@/constants/endpoint";
 import { createThemedStyles } from "@/constants/themes";
 import { useTheme } from "@/hooks/useTheme";
+import { get } from "@/utils/apiClient";
 import { jwtAtom } from "@/utils/jwt";
 import dayjs from "dayjs";
 import { FlatList } from "react-native-gesture-handler";
@@ -42,21 +41,18 @@ const getUserDetails = async (
   id: string
 ): Promise<UserDetails> => {
   try {
-    const response = await fetch(`${ENDPOINT}/users/${id}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "*/*",
-        "User-Agent": "RealStayApp",
-      },
+    const response = await get(`/users/${id}`, {
+      requiresAuth: true,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Failed to fetch user details: ${response.status}`);
+    if (response.data === null) {
+      toast.error(`Failed to fetch user details: ${response.error}`, {
+        description: response.status.toString(),
+      });
     }
 
-    const data = await response.json();
+    const data = response.data as any;
+    console.log(data);
     return data.data.user as UserDetails;
   } catch (error) {
     console.error("Error fetching user details:", error);
@@ -64,25 +60,24 @@ const getUserDetails = async (
   }
 };
 
-const getAllMessages = async (token: string): Promise<ChatRoom[]> => {
+const getAllMessages = async (
+  token: string
+): Promise<Record<number, ChatRoom>> => {
   try {
-    const response = await fetch(`${ENDPOINT}/chat/messages`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "*/*",
-        "User-Agent": "RealStayApp",
-      },
+    const response = await get(`/chat/messages`, {
+      requiresAuth: true,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Failed to fetch messages: ${response.status}`);
+    if (response.data === null) {
+      toast.error(`Failed to fetch messages: ${response.error}`, {
+        description: response.status.toString(),
+      });
     }
 
-    const data = await response.json();
+    const data = response.data as any;
+    console.log(data);
     // TODO: Replace with actual data when API is ready
-    return [] as ChatRoom[];
+    return data.data as Record<number, ChatRoom>;
   } catch (error) {
     console.error("Error fetching messages:", error);
     toast.error("Failed to load chats");
@@ -156,7 +151,7 @@ const EmptyState = ({ theme }: { theme: any }) => {
 };
 
 export default function ChatsScreen() {
-  const { top } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const theme = useTheme();
   const styles = createThemedStyles(theme);
   const componentStyles = createComponentStyles(theme);
@@ -173,28 +168,35 @@ export default function ChatsScreen() {
     queryFn: () => getAllMessages(token!),
     enabled: !!token,
     retry: 2,
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // 30 seconds
   });
 
   // Fetch user details for each chat sender
   const { data: userData, isLoading: userDataLoading } = useQuery({
-    queryKey: ["userDetails", chats?.map((chat) => chat.senderId)],
+    queryKey: [
+      "userDetails",
+      chats ? Object.values(chats).map((chat) => chat.senderId) : [],
+    ],
     queryFn: async () => {
-      if (!chats?.length) return [];
+      if (!chats || Object.keys(chats).length === 0) return [];
 
-      const uniqueSenderIds = [...new Set(chats.map((chat) => chat.senderId))];
+      const chatArray = Object.values(chats);
+      const uniqueSenderIds = [
+        ...new Set(chatArray.map((chat) => chat.senderId)),
+      ];
       return Promise.all(
         uniqueSenderIds.map((id) => getUserDetails(token!, id))
       );
     },
-    enabled: !!token && !!chats?.length,
+    enabled: !!token && !!chats && Object.keys(chats).length > 0,
   });
 
   // Combine chat data with user details
   const chatData = useMemo(() => {
     if (!chats || !userData) return [];
 
-    return chats.map((chat) => ({
+    const chatArray = Object.values(chats);
+    return chatArray.map((chat) => ({
       ...chat,
       senderDetails: userData.find((user) => user._id === chat.senderId),
     }));
@@ -224,11 +226,7 @@ export default function ChatsScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: top + 16 }]}>
-      {/* <View style={componentStyles.header}>
-        <Text style={componentStyles.headerTitle}>Messages</Text>
-      </View> */}
-
+    <View style={[styles.container, { paddingTop: 16, paddingBottom: bottom }]}>
       {chatData.length === 0 ? (
         <EmptyState theme={theme} />
       ) : (

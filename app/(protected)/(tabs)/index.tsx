@@ -27,6 +27,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { apiRequest, get } from "@/utils/apiClient";
 import { useServerWarmup } from "@/utils/serverWarmup";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
+import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { ArrowLeft, MagnifyingGlass } from "phosphor-react-native";
 import {
@@ -44,15 +45,69 @@ interface UserInfo {
   user_type?: string;
 }
 
+interface Owner {
+  _id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  gender: string;
+  user_type: string;
+  image_url?: string;
+}
+
+interface ApiListing {
+  _id: string;
+  place_holder_address: string;
+  google_formatted_address: string;
+  owner_id: string;
+  state: string;
+  lga: string;
+  lat: number;
+  lng: number;
+  type: string;
+  no_of_beds: number;
+  no_of_bedrooms: number;
+  no_of_bathrooms: number;
+  are_pets_allowed: boolean;
+  are_parties_allowed: boolean;
+  extra_offerings: string[];
+  title: string;
+  description: string;
+  cost: number;
+  cost_cycle: string;
+  photos: string[];
+  status: string;
+  owner: Owner;
+  average_rating: number | null;
+}
+
 interface Listing {
   id: string;
-  currency?: string;
-  dateRange?: string;
-  distance?: string;
-  imageUrl?: string;
-  location?: string;
-  price?: string;
-  rating?: number;
+  currency: string;
+  dateRange: string;
+  distance: string;
+  imageUrl: string;
+  location: string;
+  price: string;
+  rating: number;
+  title: string;
+  type: string;
+  bedrooms: number;
+  bathrooms: number;
+}
+
+interface ApiResponse {
+  data: {
+    listings: ApiListing[];
+    pagination: {
+      total_items: number;
+      total_pages: number;
+      current_page: number;
+      limit: number;
+    };
+  };
+  success: boolean;
 }
 
 // Loading component
@@ -116,6 +171,26 @@ interface HomeScreenProps {
   userInfo: UserInfo | null;
 }
 
+// Fetch listings from the API
+const fetchListings = async () => {
+  try {
+    const response = await get<{ data: any }>("/listing", {
+      requiresAuth: true,
+    });
+
+    console.log(response);
+
+    if (response.data?.data?.listings) {
+      const apiListings = response.data.data.listings as ApiListing[];
+      return apiListings;
+    }
+  } catch (error) {
+    console.error("Error fetching listings:", error);
+    toast.error("Failed to load listings");
+  }
+  return [];
+};
+
 const HomeScreen = ({ usersName, userInfo }: HomeScreenProps) => {
   const sheetRef = useSheetRef();
   const { top, bottom } = useSafeAreaInsets();
@@ -125,34 +200,35 @@ const HomeScreen = ({ usersName, userInfo }: HomeScreenProps) => {
   const componentStyles = createComponentStyles(theme);
   const { status, warmupServerManually } = useServerWarmup();
 
-  // State
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [searchListings, setSearchListings] = useState<Listing[]>([]);
 
   // Refs
   const searchRef = useRef<TextInput>(null);
 
-  // Fetch listings from the API
-  const fetchListings = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await get("/listings", {
-        requiresAuth: false,
-        handleColdStart: true,
-      });
+  // Transform API listing to UI listing
+  const transformListing = (apiListing: ApiListing): Listing => {
+    return {
+      id: apiListing._id,
+      currency: "NGN", // Default currency
+      dateRange: "Available", // Could be calculated based on availability
+      distance: `${apiListing.state}, ${apiListing.lga}`, // Using state and LGA as location info
+      imageUrl:
+        apiListing.photos[0] || `house${Math.floor(Math.random() * 4) + 1}`, // First photo or fallback
+      location: apiListing.place_holder_address,
+      price: `${apiListing.cost.toLocaleString()}/${apiListing.cost_cycle}`,
+      rating: apiListing.average_rating || 4.0,
+      title: apiListing.title,
+      type: apiListing.type,
+      bedrooms: apiListing.no_of_bedrooms,
+      bathrooms: apiListing.no_of_bathrooms,
+    };
+  };
 
-      if (response.data) {
-        setListings(response.data as Listing[]);
-      }
-    } catch (error) {
-      console.error("Error fetching listings:", error);
-      toast.error("Failed to load listings");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data, isLoading } = useQuery({
+    queryKey: ["listings"],
+    queryFn: fetchListings,
+  });
 
   // Search functionality
   const performSearch = useCallback(async (searchTerm: string) => {
@@ -162,13 +238,21 @@ const HomeScreen = ({ usersName, userInfo }: HomeScreenProps) => {
     }
 
     try {
-      const response = await apiRequest("/listing", { requiresAuth: true });
-      const results = ((response.data as any)?.listings as Listing[]) || [];
+      const response = await apiRequest<any>(`/listing`, {
+        requiresAuth: true,
+        // params: { search: searchTerm },
+      });
 
-      setSearchListings(results);
+      if (response.data?.data?.listings) {
+        const apiListings = response.data.data.listings as ApiListing[];
+        const transformedResults = apiListings.map(transformListing);
+        setSearchListings(transformedResults);
 
-      if (results.length === 0) {
-        toast.error("No listings found for your search");
+        if (transformedResults.length === 0) {
+          toast.error("No listings found for your search");
+        }
+      } else {
+        setSearchListings([]);
       }
     } catch (error) {
       console.error("Search error:", error);
@@ -192,8 +276,8 @@ const HomeScreen = ({ usersName, userInfo }: HomeScreenProps) => {
     [search, performSearch]
   );
 
-  const isDummy = listings.length === 0;
-  const userType = userInfo?.user_type || "Guest";
+  const isEmpty = data === undefined ? true : data.length === 0;
+  const userType = "Guest"; //userInfo?.user_type ||
 
   return (
     <View
@@ -215,16 +299,16 @@ const HomeScreen = ({ usersName, userInfo }: HomeScreenProps) => {
 
         <View style={componentStyles.userTypeContainer}>
           <Text style={styles.textSecondary}>Logged in as</Text>
-          <Text style={componentStyles.userType}>guest</Text>
+          <Text style={componentStyles.userType}>{userType.toLowerCase()}</Text>
         </View>
       </View>
 
       {/* Floating Search Button */}
-      <SearchButton
+      {/* <SearchButton
         theme={theme}
         width={width}
         onPress={() => sheetRef.current?.present()}
-      />
+      /> */}
 
       {/* Search Sheet */}
       <SearchSheet
@@ -241,10 +325,12 @@ const HomeScreen = ({ usersName, userInfo }: HomeScreenProps) => {
 
       {/* Listings Content */}
       <ListingsContent
-        loading={loading}
+        loading={isLoading}
         status={status}
-        isDummy={isDummy}
-        listings={listings}
+        isEmpty={isEmpty}
+        listings={
+          data === undefined ? [] : data.map((val) => transformListing(val))
+        }
         theme={theme}
         bottom={bottom}
         warmupServerManually={warmupServerManually}
@@ -382,6 +468,28 @@ const createComponentStyles = (theme: any) =>
       padding: 40,
       lineHeight: 24,
     },
+    searchResultsContainer: {
+      paddingTop: 16,
+    },
+    emptyStateContainer: {
+      padding: 40,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    emptyStateTitle: {
+      fontSize: theme.fontSizes?.lg || 18,
+      color: theme.colors?.text?.primary || "#000",
+      ...theme.fontStyles.semiBold,
+      marginBottom: 8,
+      textAlign: "center",
+    },
+    emptyStateText: {
+      fontSize: theme.fontSizes?.base || 16,
+      color: theme.colors?.text?.secondary || "#666",
+      ...theme.fontStyles.regular,
+      textAlign: "center",
+      lineHeight: 24,
+    },
   });
 
 // Search Button Component
@@ -468,14 +576,39 @@ const SearchSheet = React.forwardRef<any, any>(
                   scrollEnabled
                   centerContent
                   data={searchListings}
-                  renderItem={({ item, index }) => (
-                    <Text>{String(item) + index.toString()}</Text>
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <ListingCard
+                      onPress={() => {
+                        router.push({
+                          pathname: "/listing",
+                          params: { id: item.id },
+                        });
+                      }}
+                      currency={item.currency}
+                      dateRange={item.dateRange}
+                      distance={item.distance}
+                      imageUrl={item.imageUrl}
+                      location={item.location}
+                      price={item.price}
+                      rating={item.rating}
+                    />
                   )}
                   ListEmptyComponent={
-                    <Text style={componentStyles.emptySearchText}>
-                      Sorry, there's no listing like that
-                    </Text>
+                    search.length > 0 ? (
+                      <Text style={componentStyles.emptySearchText}>
+                        Sorry, there's no listing like that
+                      </Text>
+                    ) : (
+                      <Text style={componentStyles.emptySearchText}>
+                        Start typing to search for listings
+                      </Text>
+                    )
                   }
+                  contentContainerStyle={[
+                    { paddingHorizontal: 16 },
+                    componentStyles.searchResultsContainer,
+                  ]}
                 />
               </View>
 
@@ -511,7 +644,7 @@ const SearchSheet = React.forwardRef<any, any>(
 const ListingsContent = ({
   loading,
   status,
-  isDummy,
+  isEmpty,
   listings,
   theme,
   bottom,
@@ -548,36 +681,32 @@ const ListingsContent = ({
             <Text style={componentStyles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
-      ) : isDummy ? (
-        Array.from({ length: 4 }).map((_, index) => (
+      ) : isEmpty ? (
+        <View style={componentStyles.emptyStateContainer}>
+          <Text style={componentStyles.emptyStateTitle}>
+            No listings available
+          </Text>
+          <Text style={componentStyles.emptyStateText}>
+            Check back later for new property listings in your area.
+          </Text>
+        </View>
+      ) : (
+        listings.map((listing: Listing) => (
           <ListingCard
-            key={`demo-${index}`}
+            key={listing.id}
             onPress={() => {
               router.push({
                 pathname: "/listing",
-                params: { demoNumber: (index + 1).toString() },
+                params: { id: listing.id },
               });
             }}
-            currency="NGN"
-            dateRange="12-14"
-            distance="10km"
-            imageUrl={`house${index + 1}`}
-            location="London"
-            price="5000"
-            rating={4.5}
-          />
-        ))
-      ) : (
-        listings.map((listing: Listing, index: number) => (
-          <ListingCard
-            key={listing.id || `listing-${index}`}
-            currency={listing.currency || "NGN"}
-            dateRange={listing.dateRange || "Available"}
-            distance={listing.distance || "Unknown"}
-            imageUrl={listing.imageUrl || `house${(index % 4) + 1}`}
-            location={listing.location || "Unknown"}
-            price={listing.price || "Contact"}
-            rating={listing.rating || 4.0}
+            currency={listing.currency}
+            dateRange={listing.dateRange}
+            distance={listing.distance}
+            imageUrl={listing.imageUrl}
+            location={listing.location}
+            price={listing.price}
+            rating={listing.rating}
           />
         ))
       )}

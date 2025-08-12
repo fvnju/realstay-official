@@ -2,6 +2,7 @@ import { createThemedStyles } from "@/constants/themes";
 import { useTheme } from "@/hooks/useTheme";
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useAtomValue } from "jotai";
 import {
   CaretLeft,
   Heart,
@@ -10,8 +11,9 @@ import {
   User,
   WifiX as Wifi,
 } from "phosphor-react-native";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,19 +21,56 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { toast } from "sonner-native";
+
+import { get } from "@/utils/apiClient";
+import { jwtAtom } from "@/utils/jwt";
 
 // Types
-interface Review {
-  id: string;
-  userName: string;
-  userAvatar?: string;
-  rating: number;
-  date: string;
-  comment: string;
+interface Owner {
+  _id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  gender: string;
+  user_type: string;
+  image_url?: string;
+  status: string;
+  createdAt: string;
+}
+
+interface ApiListingData {
+  _id: string;
+  place_holder_address: string;
+  google_formatted_address: string;
+  owner_id: string;
+  state: string;
+  lga: string;
+  lat: number;
+  lng: number;
+  type: string;
+  no_of_beds: number;
+  are_pets_allowed: boolean;
+  no_of_bedrooms: number;
+  no_of_bathrooms: number;
+  are_parties_allowed: boolean;
+  extra_offerings: string[];
+  title: string;
+  description: string;
+  cost: number;
+  cost_cycle: string;
+  photos: string[];
+  status: string;
+  owner: Owner;
+  average_rating: number | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface ListingData {
   id: string;
+  owner_id: string;
   title: string;
   type: string;
   location: string;
@@ -52,59 +91,127 @@ interface ListingData {
   };
   amenities: string[];
   images: string[];
-  reviews: Review[];
+  petsAllowed: boolean;
+  partiesAllowed: boolean;
+  costCycle: string;
 }
 
-// Mock data - replace with API call
-const getMockListingData = (demoNumber?: string): ListingData => ({
-  id: demoNumber || "1",
-  title: "Spacious 2-Bedroom Apartment for Rent",
-  type: "Apartment",
-  location: "Kubwa, Abuja",
-  guests: 4,
-  bedrooms: 2,
-  beds: 2,
-  bathrooms: 2,
-  rating: 4.81,
-  reviewCount: 20,
-  price: 50000,
-  currency: "₦",
-  description:
-    "Welcome to your home away from home! This stylish 2-bedroom, 2-bathroom apartment offers the perfect blend of comfort and sophistication in the bustling heart of the city. Located on the 8th floor of a modern high-rise, this spacious 1,200 square-foot apartment features floor-to-ceiling windows that bathe the interior in natural light and provide sweeping views of the skyline.",
-  host: {
-    name: "Paul Illoris",
-    joinDate: "5 months on this app",
-    isSuperhost: false,
-  },
-  amenities: ["WiFi", "Kitchen", "Air conditioning", "Parking"],
-  images: [demoNumber ? `house${demoNumber}` : "house1"],
-  reviews: [
-    {
-      id: "1",
-      userName: "Sarah Johnson",
-      rating: 5,
-      date: "December 2024",
-      comment:
-        "Amazing place! The apartment was exactly as described and the host was very responsive. The location is perfect and the amenities were great. Highly recommend!",
+interface ApiResponse {
+  data: ApiListingData;
+  success: boolean;
+}
+
+// Transform API data to UI format
+const transformListingData = (apiData: ApiListingData): ListingData => {
+  const joinDate = new Date(apiData.owner.createdAt);
+  const monthsAgo = Math.floor(
+    (Date.now() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+  );
+
+  return {
+    id: apiData._id,
+    owner_id: apiData.owner_id,
+    title: apiData.title,
+    type: apiData.type,
+    location: apiData.place_holder_address,
+    guests: apiData.no_of_beds, // Assuming beds can accommodate guests
+    bedrooms: apiData.no_of_bedrooms,
+    beds: apiData.no_of_beds,
+    bathrooms: apiData.no_of_bathrooms,
+    rating: apiData.average_rating || 4.0,
+    reviewCount: 0, // No review count in API response
+    price: apiData.cost,
+    currency: "₦",
+    description: apiData.description,
+    host: {
+      name: `${apiData.owner.first_name} ${apiData.owner.last_name}`,
+      avatar: apiData.owner.image_url,
+      joinDate: `${monthsAgo} months on this app`,
+      isSuperhost: apiData.owner.user_type === "host",
     },
-    {
-      id: "2",
-      userName: "Michael Chen",
-      rating: 4,
-      date: "November 2024",
-      comment:
-        "Great stay overall. The apartment is spacious and well-maintained. Only minor issue was the WiFi speed, but everything else was perfect.",
-    },
-    {
-      id: "3",
-      userName: "Emma Williams",
-      rating: 5,
-      date: "October 2024",
-      comment:
-        "Loved our stay here! The apartment is beautiful and the host Paul was incredibly helpful. Will definitely book again.",
-    },
-  ],
-});
+    amenities: apiData.extra_offerings,
+    images: apiData.photos.length > 0 ? apiData.photos : ["house1"],
+    petsAllowed: apiData.are_pets_allowed,
+    partiesAllowed: apiData.are_parties_allowed,
+    costCycle: apiData.cost_cycle,
+  };
+};
+
+// Loading Component
+const LoadingScreen = ({ theme }: { theme: any }) => {
+  const styles = createThemedStyles(theme);
+
+  return (
+    <View
+      style={[
+        styles.container,
+        { justifyContent: "center", alignItems: "center" },
+      ]}
+    >
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+      <Text style={[styles.textSecondary, { marginTop: 16 }]}>
+        Loading listing...
+      </Text>
+    </View>
+  );
+};
+
+// Error Component
+const ErrorScreen = ({
+  theme,
+  onRetry,
+}: {
+  theme: any;
+  onRetry: () => void;
+}) => {
+  const styles = createThemedStyles(theme);
+
+  return (
+    <View
+      style={[
+        styles.container,
+        {
+          justifyContent: "center",
+          alignItems: "center",
+          paddingHorizontal: 32,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.text,
+          {
+            fontSize: 18,
+            fontWeight: "600",
+            marginBottom: 8,
+            textAlign: "center",
+          },
+        ]}
+      >
+        Failed to load listing
+      </Text>
+      <Text
+        style={[
+          styles.textSecondary,
+          { marginBottom: 16, textAlign: "center" },
+        ]}
+      >
+        Please check your connection and try again
+      </Text>
+      <TouchableOpacity
+        onPress={onRetry}
+        style={{
+          backgroundColor: theme.colors.primary,
+          paddingHorizontal: 24,
+          paddingVertical: 12,
+          borderRadius: 8,
+        }}
+      >
+        <Text style={{ color: "#FFFFFF", fontWeight: "600" }}>Retry</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 // Header Component
 const ListingHeader = ({
@@ -192,16 +299,12 @@ const ListingInfo = ({
       </View>
 
       {/* Rating Section */}
-      <TouchableOpacity
-        style={componentStyles.ratingSection}
-        onPress={onShowAllReviews}
-        activeOpacity={0.7}
-      >
+      <View style={componentStyles.ratingSection}>
         <Star size={16} weight="fill" color={theme.colors.accent} />
         <Text style={componentStyles.ratingText}>
-          {listing.rating.toFixed(2)} · {listing.reviewCount} reviews
+          {listing.rating.toFixed(1)} rating
         </Text>
-      </TouchableOpacity>
+      </View>
 
       {/* Host Section */}
       <View style={componentStyles.hostSection}>
@@ -234,58 +337,20 @@ const ListingInfo = ({
         </TouchableOpacity>
       </View>
 
-      {/* Reviews Section */}
-      <View style={componentStyles.reviewsSection}>
-        <View style={componentStyles.reviewsHeader}>
-          <Text style={componentStyles.sectionTitle}>
-            Reviews ({listing.reviewCount})
-          </Text>
-          <TouchableOpacity onPress={onShowAllReviews}>
-            <Text style={componentStyles.showAllText}>Show all</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={componentStyles.reviewsGrid}>
-          {listing.reviews.slice(0, 2).map((review) => (
-            <View key={review.id} style={componentStyles.reviewItem}>
-              <View style={componentStyles.reviewHeader}>
-                <View style={componentStyles.reviewerAvatar}>
-                  <User
-                    size={20}
-                    color={theme.colors.text.inverse}
-                    weight="fill"
-                  />
-                </View>
-                <View style={componentStyles.reviewerInfo}>
-                  <Text style={componentStyles.reviewerName}>
-                    {review.userName}
-                  </Text>
-                  <View style={componentStyles.reviewMeta}>
-                    <View style={componentStyles.reviewRating}>
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <Star
-                          key={index}
-                          size={12}
-                          weight="fill"
-                          color={
-                            index < review.rating
-                              ? theme.colors.accent
-                              : theme.colors.border
-                          }
-                        />
-                      ))}
-                    </View>
-                    <Text style={componentStyles.reviewDate}>
-                      {review.date}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <Text style={componentStyles.reviewComment} numberOfLines={3}>
-                {review.comment}
-              </Text>
-            </View>
-          ))}
+      {/* Property Rules Section */}
+      <View style={componentStyles.rulesSection}>
+        <Text style={componentStyles.sectionTitle}>House rules</Text>
+        <View style={componentStyles.rulesGrid}>
+          <View style={componentStyles.ruleItem}>
+            <Text style={componentStyles.ruleText}>
+              Pets {listing.petsAllowed ? "allowed" : "not allowed"}
+            </Text>
+          </View>
+          <View style={componentStyles.ruleItem}>
+            <Text style={componentStyles.ruleText}>
+              Parties {listing.partiesAllowed ? "allowed" : "not allowed"}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -340,7 +405,9 @@ const BottomBar = ({
               {listing.currency}
               {listing.price.toLocaleString()}
             </Text>
-            <Text style={componentStyles.priceSubtext}>/ night</Text>
+            <Text style={componentStyles.priceSubtext}>
+              / {listing.costCycle}
+            </Text>
           </View>
           <View style={componentStyles.totalRow}>
             <Text style={componentStyles.totalText}>Total before taxes</Text>
@@ -366,37 +433,101 @@ export default function ListingScreen() {
   const theme = useTheme();
   const styles = createThemedStyles(theme);
   const componentStyles = createComponentStyles(theme);
-  const { demoNumber } = useLocalSearchParams();
+  const { demoNumber, id } = useLocalSearchParams();
   const { top, bottom } = useSafeAreaInsets();
   const router = useRouter();
+  const token = useAtomValue(jwtAtom);
 
   // State
   const [showFullDescription, setShowFullDescription] = useState(false);
-  const [listing] = useState<ListingData>(() =>
-    getMockListingData(demoNumber as string)
-  );
+  const [listing, setListing] = useState<ListingData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  // Fetch listing data
+  const fetchListing = useCallback(async () => {
+    if (!id && !demoNumber) {
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(false);
+
+    try {
+      const listingId = id || demoNumber;
+      const response = await get<any>(`/listing/${listingId}`, {
+        requiresAuth: true,
+      });
+
+      if (response.data?.data) {
+        const transformedListing = transformListingData(response.data.data);
+        setListing(transformedListing);
+      } else {
+        setError(true);
+      }
+    } catch (error) {
+      console.error("Error fetching listing:", error);
+      setError(true);
+      toast.error("Failed to load listing");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, demoNumber]);
+
+  useEffect(() => {
+    fetchListing();
+  }, [fetchListing]);
 
   const handleBack = useCallback(() => {
     router.back();
   }, [router]);
 
   const handleReserve = useCallback(() => {
+    if (!listing) return;
+
     router.back();
     router.navigate({
-      pathname: `/chat/6813b689f7369be5c71df81d` as any,
+      pathname: `/chat/${listing.owner_id}` as any, // You might want to use owner ID instead
+      params: {
+        initialMessage: "I want to reserve a property of yours",
+      },
     });
-  }, [router]);
+  }, [router, listing]);
 
   const handleShowMore = useCallback(() => {
     setShowFullDescription(true);
   }, []);
 
   const handleShowAllReviews = useCallback(() => {
+    if (!listing) return;
+
     router.push({
       pathname: "/listing/reviews",
       params: { listingId: listing.id },
     });
-  }, [router, listing.id]);
+  }, [router, listing]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <View style={[styles.container, { paddingTop: top + 12 }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <LoadingScreen theme={theme} />
+      </View>
+    );
+  }
+
+  // Show error state
+  if (error || !listing) {
+    return (
+      <View style={[styles.container, { paddingTop: top + 12 }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ErrorScreen theme={theme} onRetry={fetchListing} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: top + 12 }]}>
@@ -737,11 +868,25 @@ const createComponentStyles = (theme: any) =>
       color: theme.colors?.text?.secondary || "#666",
       ...theme.fontStyles.regular,
     },
-    reviewComment: {
-      fontSize: theme.fontSizes?.sm || 14,
+    rulesSection: {
+      gap: 16,
+      backgroundColor: theme.colors?.surface || "#ffffff",
+      padding: 20,
+      borderRadius: theme.borderRadius?.xl || 16,
+      ...(theme.shadows?.sm || {}),
+    },
+    rulesGrid: {
+      gap: 12,
+    },
+    ruleItem: {
+      paddingVertical: 12,
+      paddingHorizontal: 4,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors?.border || "#e5e5ea",
+    },
+    ruleText: {
+      fontSize: theme.fontSizes?.base || 16,
       color: theme.colors?.text?.primary || "#000",
       ...theme.fontStyles.regular,
-      lineHeight:
-        (theme.fontSizes?.sm || 14) * (theme.lineHeights?.relaxed || 1.6),
     },
   });

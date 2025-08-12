@@ -6,7 +6,12 @@
         "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.favour_nj.realstay"
+      "package": "com.favour_nj.realstay",
+      "config": {
+        "googleMaps": {
+          "apiKey": "process.env.GOOGLE_MAPS_API_KEY"
+        }
+      }
     },
     "experiments": {
       "typedRoutes": true
@@ -61,9 +66,7 @@
           "photosPermission": "The app accesses your photos to let you share them with your friends."
         }
       ],
-
       "expo-document-picker",
-
       [
         "expo-location",
         {
@@ -109,12 +112,13 @@
             ]
           }
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "scheme": "realstay",
     "slug": "realstay",
     "userInterfaceStyle": "automatic",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "web": {
       "bundler": "metro",
       "favicon": "./assets/images/favicon.png",

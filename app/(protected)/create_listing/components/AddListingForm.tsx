@@ -1,53 +1,108 @@
-import React, { useState } from "react";
-import { View, KeyboardAvoidingView, Platform, Text } from "react-native";
-import { router } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Camera } from "phosphor-react-native";
-import { PrimaryButton } from "@/components/Button/Primary";
 import TextField from "@/components/TextField";
 import { useTheme } from "@/hooks/useTheme";
-import { FormSection } from "./FormSection";
-import { PropertyTypeDropdown } from "./PropertyTypeDropdown";
-import { ListingFormData } from "../types";
-import {
-  DEFAULT_PROPERTY_TYPE,
-  DEFAULT_LOCATION,
-  FORM_LABELS,
-  PropertyType,
-} from "../constants";
-import { openMapsWithLocation } from "../utils";
+import { router } from "expo-router";
+import { useAtom } from "jotai";
+import { ArrowRight, Images, MapPin, MapTrifold } from "phosphor-react-native";
+import React, { useEffect } from "react";
+import { KeyboardAvoidingView, Platform, Text, View } from "react-native";
+import { TouchableOpacity } from "react-native-gesture-handler";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { FORM_LABELS } from "../constants";
+import { useListingForm } from "../hooks/useListingForm";
+import { listingAddressAtom } from "../store";
+import { ImagePicker } from "./ImagePicker";
+import { LGADropdown } from "./LGADropdown";
+import { StateDropdown } from "./StateDropdown";
 
 export const AddListingForm: React.FC = () => {
   const theme = useTheme();
   const { bottom } = useSafeAreaInsets();
+  const [address, setAddress] = useAtom(listingAddressAtom);
 
-  // Form state
-  const [formData, setFormData] = useState<ListingFormData>({
-    address: "",
-    photos: [],
-    propertyType: DEFAULT_PROPERTY_TYPE,
-  });
+  // Use Jotai form state
+  const { state, lga, photos, setState, setLga, setPhotos } = useListingForm();
 
-  const updateFormData = <K extends keyof ListingFormData>(
-    key: K,
-    value: ListingFormData[K]
-  ) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  };
+  // Animation values for staggered entrance
+  const addressOpacity = useSharedValue(0);
+  const stateOpacity = useSharedValue(0);
+  const lgaOpacity = useSharedValue(0);
+  const locationOpacity = useSharedValue(0);
+  const photosOpacity = useSharedValue(0);
+  const propertyOpacity = useSharedValue(0);
+  const buttonOpacity = useSharedValue(0);
 
-  const handleNext = () => {
-    // TODO: Add form validation here
-    router.push("/create_listing/part2");
-  };
+  const addressSlide = useSharedValue(30);
+  const stateSlide = useSharedValue(30);
+  const lgaSlide = useSharedValue(30);
+  const locationSlide = useSharedValue(30);
+  const photosSlide = useSharedValue(30);
+  const propertySlide = useSharedValue(30);
+  const buttonSlide = useSharedValue(30);
+
+  // Animated styles
+  const addressAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: addressOpacity.value,
+    transform: [{ translateY: addressSlide.value }],
+  }));
+
+  const stateAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: stateOpacity.value,
+    transform: [{ translateY: stateSlide.value }],
+  }));
+
+  const lgaAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: lgaOpacity.value,
+    transform: [{ translateY: lgaSlide.value }],
+  }));
+
+  const locationAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: locationOpacity.value,
+    transform: [{ translateY: locationSlide.value }],
+  }));
+
+  const photosAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: photosOpacity.value,
+    transform: [{ translateY: photosSlide.value }],
+  }));
+
+  const propertyAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: propertyOpacity.value,
+    transform: [{ translateY: propertySlide.value }],
+  }));
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: buttonOpacity.value,
+    transform: [{ translateY: buttonSlide.value }],
+  }));
+
+  // Staggered entrance animations
+  useEffect(() => {
+    const animateSection = (opacity: any, slide: any, delay: number) => {
+      opacity.value = withDelay(delay, withTiming(1, { duration: 500 }));
+      slide.value = withDelay(
+        delay,
+        withSpring(0, { damping: 15, stiffness: 150 })
+      );
+    };
+
+    animateSection(addressOpacity, addressSlide, 0);
+    animateSection(stateOpacity, stateSlide, 100);
+    animateSection(lgaOpacity, lgaSlide, 200);
+    animateSection(locationOpacity, locationSlide, 300);
+    animateSection(photosOpacity, photosSlide, 400);
+    animateSection(propertyOpacity, propertySlide, 500);
+    animateSection(buttonOpacity, buttonSlide, 600);
+  }, []);
 
   const handleOpenMaps = () => {
-    const { latitude, longitude, label } = DEFAULT_LOCATION;
-    openMapsWithLocation(latitude, longitude, label);
-  };
-
-  const handleOpenPhotos = () => {
-    // TODO: Implement photo picker
-    console.log("Open photo picker");
+    router.push("/MapFullView");
   };
 
   return (
@@ -56,94 +111,355 @@ export const AddListingForm: React.FC = () => {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.formSection}
       >
-        {/* Address Section */}
-        <FormSection label={FORM_LABELS.address} hint={FORM_LABELS.addressHint}>
-          <TextField
-            autoFocus
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={formData.address}
-            onChangeText={(text) => updateFormData("address", text)}
-          />
-        </FormSection>
-
-        {/* Location Section */}
-        <FormSection label={FORM_LABELS.location}>
-          <PrimaryButton
-            style={{
-              backgroundColor: theme.colors.appDropShadow,
-            }}
-            textStyle={{ color: theme.colors.appTextPrimary }}
-            onPress={handleOpenMaps}
+        {/* Enhanced Address Section */}
+        <Animated.View style={[styles.enhancedSection, addressAnimatedStyle]}>
+          <View
+            style={[
+              styles.sectionCard,
+              {
+                backgroundColor: theme.colors.appSurface,
+                shadowColor: theme.colors.appDropShadow,
+                borderColor: theme.colors.elementsTextFieldBorder,
+              },
+            ]}
           >
-            Open Maps
-          </PrimaryButton>
-        </FormSection>
-
-        {/* Photos Section */}
-        <View style={styles.formSectionWrapper}>
-          <View style={styles.photoLabelSection}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme.colors.appTextPrimary },
-                theme.fontStyles.semiBold,
-              ]}
-            >
-              {FORM_LABELS.photos}
-            </Text>
-            <Camera size={20} color={theme.colors.appTextAccent} weight="bold" />
+            <View style={styles.sectionHeader}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: theme.colors.appPrimary + "20" },
+                ]}
+              >
+                <MapPin
+                  color={theme.colors.appPrimary}
+                  size={20}
+                  weight="bold"
+                />
+              </View>
+              <View style={styles.sectionTitleContainer}>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: theme.colors.appTextPrimary },
+                    theme.fontStyles.semiBold,
+                  ]}
+                >
+                  {FORM_LABELS.address}
+                </Text>
+                <Text
+                  style={[
+                    styles.sectionHint,
+                    { color: theme.colors.appTextSecondary },
+                  ]}
+                >
+                  {FORM_LABELS.addressHint}
+                </Text>
+              </View>
+            </View>
+            <TextField
+              autoComplete="address-line1"
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect={false}
+              defaultValue={address}
+              onChangeText={(t) => {
+                console.log(t);
+                setAddress(t);
+              }}
+              placeholder="Enter property address..."
+            />
           </View>
-          <PrimaryButton
-            style={{
-              backgroundColor: theme.colors.appDropShadow,
-            }}
-            textStyle={{ color: theme.colors.appTextPrimary }}
-            onPress={handleOpenPhotos}
+        </Animated.View>
+
+        {/* Enhanced State Section */}
+        <Animated.View style={[styles.enhancedSection, stateAnimatedStyle]}>
+          <View
+            style={[
+              styles.sectionCard,
+              {
+                backgroundColor: theme.colors.appSurface,
+                shadowColor: theme.colors.appDropShadow,
+                borderColor: theme.colors.elementsTextFieldBorder,
+              },
+            ]}
           >
-            Open Photos
-          </PrimaryButton>
-        </View>
+            <View style={styles.sectionHeader}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: theme.colors.status.warning + "20" },
+                ]}
+              >
+                <MapTrifold
+                  color={theme.colors.status.warning}
+                  size={20}
+                  weight="bold"
+                />
+              </View>
+              <View style={styles.sectionTitleContainer}>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: theme.colors.appTextPrimary },
+                    theme.fontStyles.semiBold,
+                  ]}
+                >
+                  {FORM_LABELS.state}
+                </Text>
+                <Text
+                  style={[
+                    styles.sectionHint,
+                    { color: theme.colors.appTextSecondary },
+                  ]}
+                >
+                  {FORM_LABELS.stateHint}
+                </Text>
+              </View>
+            </View>
+            <StateDropdown value={state} onChange={setState} />
+          </View>
+        </Animated.View>
 
-        {/* Property Type Section */}
-        <FormSection label={FORM_LABELS.propertyType}>
-          <PropertyTypeDropdown
-            value={formData.propertyType}
-            onChange={(value) => updateFormData("propertyType", value)}
-          />
-        </FormSection>
+        {/* Enhanced LGA Section */}
+        <Animated.View style={[styles.enhancedSection, lgaAnimatedStyle]}>
+          <View
+            style={[
+              styles.sectionCard,
+              {
+                backgroundColor: theme.colors.appSurface,
+                shadowColor: theme.colors.appDropShadow,
+                borderColor: theme.colors.elementsTextFieldBorder,
+              },
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: theme.colors.status.warning + "20" },
+                ]}
+              >
+                <MapTrifold
+                  color={theme.colors.status.warning}
+                  size={20}
+                  weight="bold"
+                />
+              </View>
+              <View style={styles.sectionTitleContainer}>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: theme.colors.appTextPrimary },
+                    theme.fontStyles.semiBold,
+                  ]}
+                >
+                  {FORM_LABELS.lga}
+                </Text>
+                <Text
+                  style={[
+                    styles.sectionHint,
+                    { color: theme.colors.appTextSecondary },
+                  ]}
+                >
+                  {FORM_LABELS.lgaHint}
+                </Text>
+              </View>
+            </View>
+            <LGADropdown value={lga} onChange={setLga} selectedState={state} />
+          </View>
+        </Animated.View>
+
+        {/* Enhanced Location Section */}
+        <Animated.View style={[styles.enhancedSection, locationAnimatedStyle]}>
+          <View
+            style={[
+              styles.sectionCard,
+              {
+                backgroundColor: theme.colors.appSurface,
+                shadowColor: theme.colors.appDropShadow,
+                borderColor: theme.colors.elementsTextFieldBorder,
+              },
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: theme.colors.status.info + "20" },
+                ]}
+              >
+                <MapPin
+                  color={theme.colors.status.info}
+                  size={20}
+                  weight="bold"
+                />
+              </View>
+              <View style={styles.sectionTitleContainer}>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: theme.colors.appTextPrimary },
+                    theme.fontStyles.semiBold,
+                  ]}
+                >
+                  {FORM_LABELS.location}
+                </Text>
+                <Text
+                  style={[
+                    styles.sectionHint,
+                    { color: theme.colors.appTextSecondary },
+                  ]}
+                >
+                  Set precise location on map
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                {
+                  backgroundColor: theme.colors.surfaceSecondary,
+                  borderColor: theme.colors.elementsTextFieldBorder,
+                },
+              ]}
+              onPress={handleOpenMaps}
+            >
+              <Text
+                style={[
+                  styles.actionButtonText,
+                  { color: theme.colors.appTextPrimary },
+                  theme.fontStyles.medium,
+                ]}
+              >
+                Open Maps
+              </Text>
+              <ArrowRight color={theme.colors.appTextSecondary} size={16} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        {/* Enhanced Photos Section */}
+        <Animated.View style={[styles.enhancedSection, photosAnimatedStyle]}>
+          <View
+            style={[
+              styles.sectionCard,
+              {
+                backgroundColor: theme.colors.appSurface,
+                shadowColor: theme.colors.appDropShadow,
+                borderColor: theme.colors.elementsTextFieldBorder,
+              },
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: theme.colors.status.success + "20" },
+                ]}
+              >
+                <Images
+                  color={theme.colors.status.success}
+                  size={20}
+                  weight="bold"
+                />
+              </View>
+              <View style={styles.sectionTitleContainer}>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: theme.colors.appTextPrimary },
+                    theme.fontStyles.semiBold,
+                  ]}
+                >
+                  {FORM_LABELS.photos}
+                </Text>
+                <Text
+                  style={[
+                    styles.sectionHint,
+                    { color: theme.colors.appTextSecondary },
+                  ]}
+                >
+                  Add photos to showcase your property (1-10 images)
+                </Text>
+              </View>
+            </View>
+            <ImagePicker images={photos} onChange={setPhotos} />
+          </View>
+        </Animated.View>
       </KeyboardAvoidingView>
-
-      {/* Next Button */}
-      <View style={[styles.footer, { paddingBottom: bottom + 24 }]}>
-        <PrimaryButton onPress={handleNext}>Next</PrimaryButton>
-      </View>
     </View>
   );
 };
 
 const styles = {
   container: {
-    marginTop: 24,
-    gap: 32,
     flex: 1,
   },
   formSection: {
-    gap: 32,
+    gap: 24,
   },
-  formSectionWrapper: {
-    gap: 8,
+
+  // Enhanced Section Styles
+  enhancedSection: {
+    marginBottom: 24,
   },
-  photoLabelSection: {
+  sectionCard: {
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 16,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  sectionTitleContainer: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  sectionHint: {
+    fontSize: 14,
+    lineHeight: 20,
+    opacity: 0.8,
+  },
+
+  // Action Button Styles
+  actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  label: {
+  actionButtonText: {
     fontSize: 16,
   },
+
+  // Footer Styles
   footer: {
-    flex: 1,
-    justifyContent: "flex-end",
+    paddingTop: 24,
+  },
+  nextButton: {
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
 } as const;

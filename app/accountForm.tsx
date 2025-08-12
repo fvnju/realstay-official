@@ -160,13 +160,12 @@ export default function AccountForm() {
 
       const result = await response.json();
 
-      if (response.status === 201) {
+      if (response.ok) {
         toast.success("Account created successfully!");
         router.dismissTo({ pathname: "/email" });
       } else {
         toast.error("Account creation failed", {
-          description:
-            result.message || result.error || `Status: ${response.status}`,
+          description: result.data.message ?? `Status: ${response.status}`,
         });
       }
     } catch (error) {

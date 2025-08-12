@@ -89,9 +89,15 @@ export const apiRequest = async <T>(
     ...fetchOptions.headers,
   };
 
+  // Filter out null body values to match FetchRequestInit type
+  const cleanedOptions = { ...fetchOptions };
+  if (cleanedOptions.body === null) {
+    delete cleanedOptions.body;
+  }
+
   try {
     // Make the API request
-    const response = await fetch(url, fetchOptions);
+    const response = await fetch(url, cleanedOptions);
 
     // Handle cold start detection (server taking too long or 503 status)
     if (
@@ -109,7 +115,7 @@ export const apiRequest = async <T>(
         await warmupServer();
 
         // Retry the original request after warmup
-        const retryResponse = await fetch(url, fetchOptions);
+        const retryResponse = await fetch(url, cleanedOptions);
 
         if (retryResponse.ok) {
           const data = await retryResponse.json();
@@ -218,9 +224,9 @@ export const post = <T>(
   options: ApiRequestOptions = {}
 ) => {
   return apiRequest<T>(endpoint, {
-    ...options,
     method: "POST",
     body: JSON.stringify(data),
+    ...options,
   });
 };
 
