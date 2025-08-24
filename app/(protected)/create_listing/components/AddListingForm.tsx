@@ -1,9 +1,9 @@
 import TextField from "@/components/TextField";
 import { useTheme } from "@/hooks/useTheme";
 import { router } from "expo-router";
-import { useAtom } from "jotai";
+import { listenKeys } from "nanostores";
 import { ArrowRight, Images, MapPin, MapTrifold } from "phosphor-react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import Animated, {
@@ -13,18 +13,16 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FORM_LABELS } from "../constants";
+import { $listingSubmision } from "..";
+import { FORM_LABELS, NigerianState } from "../constants";
 import { useListingForm } from "../hooks/useListingForm";
-import { listingAddressAtom } from "../store";
+import { ListingFormData } from "../types";
 import { ImagePicker } from "./ImagePicker";
 import { LGADropdown } from "./LGADropdown";
 import { StateDropdown } from "./StateDropdown";
 
 export const AddListingForm: React.FC = () => {
   const theme = useTheme();
-  const { bottom } = useSafeAreaInsets();
-  const [address, setAddress] = useAtom(listingAddressAtom);
 
   // Use Jotai form state
   const { state, lga, photos, setState, setLga, setPhotos } = useListingForm();
@@ -161,10 +159,9 @@ export const AddListingForm: React.FC = () => {
               autoFocus
               autoCapitalize="none"
               autoCorrect={false}
-              defaultValue={address}
+              defaultValue={$listingSubmision.get().address}
               onChangeText={(t) => {
-                console.log(t);
-                setAddress(t);
+                $listingSubmision.setKey("address", t);
               }}
               placeholder="Enter property address..."
             />
@@ -216,7 +213,10 @@ export const AddListingForm: React.FC = () => {
                 </Text>
               </View>
             </View>
-            <StateDropdown value={state} onChange={setState} />
+            <StateDropdown
+              value={$listingSubmision.get().state}
+              onChange={(value) => $listingSubmision.setKey("state", value)}
+            />
           </View>
         </Animated.View>
 
@@ -265,7 +265,7 @@ export const AddListingForm: React.FC = () => {
                 </Text>
               </View>
             </View>
-            <LGADropdown value={lga} onChange={setLga} selectedState={state} />
+            <LGASelector />
           </View>
         </Animated.View>
 
@@ -383,13 +383,41 @@ export const AddListingForm: React.FC = () => {
                 </Text>
               </View>
             </View>
-            <ImagePicker images={photos} onChange={setPhotos} />
+            <ImagePickerWithState />
           </View>
         </Animated.View>
       </KeyboardAvoidingView>
     </View>
   );
 };
+
+function LGASelector() {
+  const [state, setState] = useState("");
+
+  listenKeys($listingSubmision, ["state"], (value, oldValue, changed) => {
+    setState(value.state);
+  });
+
+  return (
+    <LGADropdown
+      value={$listingSubmision.get().lga}
+      onChange={(value) => $listingSubmision.setKey("lga", value)}
+      selectedState={state as NigerianState}
+    />
+  );
+}
+
+function ImagePickerWithState() {
+  const [state, setState] = useState<ListingFormData["photos"]>(
+    $listingSubmision.get().photos
+  );
+
+  useEffect(() => {
+    $listingSubmision.setKey("photos", state);
+  }, [state]);
+
+  return <ImagePicker images={state} onChange={setState} />;
+}
 
 const styles = {
   container: {

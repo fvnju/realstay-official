@@ -99,5 +99,10 @@ export function useChatData(token: string | null, id: string) {
     userError: userQuery.error,
     isLoading: messagesQuery.isLoading || userQuery.isLoading,
     error: messagesQuery.error || userQuery.error,
+    isRefetching: messagesQuery.isRefetching || userQuery.isRefetching,
+    refetch: () => {
+      messagesQuery.refetch();
+      userQuery.refetch();
+    },
   };
 }

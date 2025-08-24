@@ -13,18 +13,19 @@ import {
 } from "phosphor-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator, BackHandler,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 
 import { get } from "@/utils/apiClient";
 import { jwtAtom } from "@/utils/jwt";
+import { $preventDoubleNav } from "../(tabs)";
 
 // Types
 interface Owner {
@@ -229,7 +230,9 @@ const ListingHeader = ({
     <View style={componentStyles.headerContainer}>
       <Image
         style={componentStyles.headerImage}
-        source={{ uri: imageUri }}
+        source={{
+          uri: "http://t1.gstatic.com/licensed-image?q=tbn:ANd9GcQ1FM_ID8fbFHo8KICi9j9-CNu07av6aRQ0K1I2F_hrw5KatF4CsuMyLpCqiU90rvzZ0fn2W0Bn7NpmjW7K5Zc",
+        }}
         contentFit="cover"
         transition={200}
       />
@@ -429,6 +432,8 @@ const BottomBar = ({
   );
 };
 
+import { AppleMaps, GoogleMaps } from 'expo-maps';
+
 export default function ListingScreen() {
   const theme = useTheme();
   const styles = createThemedStyles(theme);
@@ -437,6 +442,16 @@ export default function ListingScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const router = useRouter();
   const token = useAtomValue(jwtAtom);
+
+    useEffect(() => {
+        const subscription = BackHandler.addEventListener("hardwareBackPress", ()=>{
+            $preventDoubleNav.set(false);
+            router.back();
+            return true;
+        })
+
+        return () => subscription.remove();
+    }, [router]);
 
   // State
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -481,14 +496,16 @@ export default function ListingScreen() {
   }, [fetchListing]);
 
   const handleBack = useCallback(() => {
+    $preventDoubleNav.set(false);
     router.back();
   }, [router]);
 
   const handleReserve = useCallback(() => {
     if (!listing) return;
 
-    router.back();
-    router.navigate({
+    $preventDoubleNav.set(false)
+
+    router.replace({
       pathname: `/chat/${listing.owner_id}` as any, // You might want to use owner ID instead
       params: {
         initialMessage: "I want to reserve a property of yours",

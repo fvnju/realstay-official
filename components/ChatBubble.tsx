@@ -2,6 +2,7 @@
 import * as Haptics from "expo-haptics";
 import React, { memo } from "react";
 import { Alert, Clipboard, Text, TouchableOpacity, View } from "react-native";
+import Markdown, { MarkdownIt } from "react-native-markdown-display";
 
 import { useTheme } from "@/hooks/useTheme";
 
@@ -86,7 +87,7 @@ export const ChatBubble = memo(function ChatBubble({
             borderRadius: 18,
             borderBottomRightRadius: isSender ? 4 : 18,
             borderBottomLeftRadius: isSender ? 18 : 4,
-            paddingVertical: 12,
+            paddingVertical: 2,
             paddingHorizontal: 16,
             shadowColor: theme.colors.appDropShadow,
             shadowOffset: { width: 0, height: 1 },
@@ -95,7 +96,19 @@ export const ChatBubble = memo(function ChatBubble({
             elevation: 1,
           }}
         >
-          <Text
+          <Markdown
+            markdownit={MarkdownIt({ typographer: true })}
+            style={{
+              body: {
+                color: isSender ? "#FFFFFF" : theme.colors.appTextPrimary,
+                ...theme.fontStyles.regular,
+                fontSize: theme.fontSizes.base,
+              },
+            }}
+          >
+            {content}
+          </Markdown>
+          {/* <Text
             style={{
               color: isSender ? "#FFFFFF" : theme.colors.appTextPrimary,
               ...theme.fontStyles.regular,
@@ -104,7 +117,7 @@ export const ChatBubble = memo(function ChatBubble({
             }}
           >
             {content}
-          </Text>
+          </Text> */}
         </View>
 
         {time && (

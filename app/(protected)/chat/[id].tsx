@@ -1,11 +1,16 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useAtomValue } from "jotai";
-import React, { useEffect, useRef, useState } from "react";
-import { FlatList, KeyboardAvoidingView, Platform } from "react-native";
+import React, { Fragment, useEffect, useRef, useState } from "react";
+import { FlatList, Keyboard, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/hooks/useTheme";
 import { jwtAtom } from "@/utils/jwt";
+import Animated, {
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 
 import {
   AttachmentOptions,
@@ -20,16 +25,42 @@ import {
 import { useChatData, useChatSocket, useImageAttachment } from "./hooks";
 
 export default function ChatPage() {
-  const { top, bottom: initialBottom } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
   const { id, initialMessage } = useLocalSearchParams();
   const token = useAtomValue(jwtAtom);
 
-  const [bottom, setBottom] = useState(initialBottom);
-  const [text, setText] = useState("");
+  const [text, setText] = useState<string>((initialMessage as string) ?? "");
   const [showAttachmentOptions, setShowAttachmentOptions] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+
+  const { height } = useWindowDimensions();
+
+  const keyboard = useAnimatedKeyboard();
+  const bottomAnimated = useSharedValue(bottom);
+  const translateStyle = useAnimatedStyle(() => {
+    return {
+      // height: height - keyboard.height.value,
+      transform: [
+        {
+          translateY: Math.max(
+            -keyboard.height.value
+            // -keyboard.height.value + bottomAnimated.value - 8
+          ),
+        },
+      ],
+    };
+  });
+  const scrollPaddingStyle = useAnimatedStyle(() => {
+    return {
+      paddingTop: keyboard.height.value - bottomAnimated.value,
+    };
+  });
+  // const bottomAnimStyle = useAnimatedStyle(()=>({
+  //   paddingTop:
+  // }))
 
   // Custom hooks for data and functionality
   const {
@@ -37,6 +68,8 @@ export default function ChatPage() {
     user,
     isLoading,
     error,
+    isRefetching,
+    refetch,
   } = useChatData(token, id.toString());
   const { messages, setMessages, isTyping, sendMessage, sendTypingIndicator } =
     useChatSocket(token, id.toString());
@@ -55,12 +88,12 @@ export default function ChatPage() {
     }
   }, [initialMessages, setMessages]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change or keyboard appears
   useEffect(() => {
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
-  }, [messages]);
+  }, [messages, keyboardHeight]);
 
   const handleTextChange = (value: string) => {
     setText(value);
@@ -71,6 +104,13 @@ export default function ChatPage() {
     if (!text.trim()) return;
     sendMessage(text);
     setText("");
+  };
+
+  const handleInputFocus = () => {
+    // Scroll to bottom when input is focused
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 300);
   };
 
   const handleAttachmentPress = (action: () => void) => {
@@ -92,66 +132,79 @@ export default function ChatPage() {
   const userType = user?.user_type || "";
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-      style={{
-        paddingBottom: bottom,
-        flex: 1,
-        backgroundColor: theme.colors.appBackground,
-      }}
-    >
-      <Stack.Screen
-        options={{
-          contentStyle: {
+    <Fragment>
+      <Animated.View
+        style={[
+          {
+            flex: 1,
             backgroundColor: theme.colors.appBackground,
+            marginBottom: 8,
           },
-          headerShown: true,
-          headerStyle: { backgroundColor: theme.colors.appBackground },
-          header: () => (
-            <ChatHeader
-              userName={userName}
-              userType={userType}
-              onBack={() => router.back()}
-              paddingTop={top}
-            />
-          ),
-        }}
-      />
-
-      <MessageList
-        ref={flatListRef}
-        messages={messages}
-        currentUserId={id.toString()}
-      />
-
-      <AttachmentOptions
-        visible={showAttachmentOptions}
-        onTakePhoto={() => handleAttachmentPress(takePhoto)}
-        onPickImage={() => handleAttachmentPress(pickImageFromLibrary)}
-      />
-
-      <TypingIndicator visible={isTyping} userName={userName} />
-
-      <>
-        <ImagePreview
-          image={image}
-          uploadProgress={uploadProgress}
-          onRemove={removeImage}
+          // translateStyle,
+        ]}
+      >
+        <Stack.Screen
+          options={{
+            contentStyle: {
+              backgroundColor: theme.colors.appBackground,
+            },
+            headerShown: true,
+            headerStyle: { backgroundColor: theme.colors.appBackground },
+            header: () => (
+              <ChatHeader
+                userName={userName}
+                userType={userType}
+                onBack={() => {
+                  Keyboard.dismiss();
+                  setTimeout(() => router.back(), 140);
+                }}
+                paddingTop={top}
+              />
+            ),
+          }}
         />
 
-        <MessageInput
-          text={(initialMessage as string) ?? ""}
-          onTextChange={handleTextChange}
-          onSend={handleSend}
-          onFocus={() => setBottom(8)}
-          onBlur={() => setBottom(initialBottom)}
-          showAttachmentOptions={showAttachmentOptions}
-          onToggleAttachments={() =>
-            setShowAttachmentOptions(!showAttachmentOptions)
-          }
+        {/* <Animated.View style={scrollPaddingStyle}></Animated.View> */}
+
+        <MessageList
+          ref={flatListRef}
+          messages={messages}
+          currentUserId={id.toString()}
+          isRefetching={isRefetching || isLoading}
+          refetchFn={refetch}
         />
-      </>
-    </KeyboardAvoidingView>
+
+        <AttachmentOptions
+          visible={showAttachmentOptions}
+          onTakePhoto={() => handleAttachmentPress(takePhoto)}
+          onPickImage={() => handleAttachmentPress(pickImageFromLibrary)}
+        />
+
+        <TypingIndicator visible={isTyping} userName={userName} />
+
+        <View>
+          <ImagePreview
+            image={image}
+            uploadProgress={uploadProgress}
+            onRemove={removeImage}
+          />
+
+          <MessageInput
+            text={text}
+            onTextChange={handleTextChange}
+            onSend={handleSend}
+            onFocus={handleInputFocus}
+            onBlur={() => {}}
+            showAttachmentOptions={showAttachmentOptions}
+            onToggleAttachments={() =>
+              setShowAttachmentOptions(!showAttachmentOptions)
+            }
+          />
+        </View>
+      </Animated.View>
+      <Animated.View
+        style={{ paddingBottom: bottomAnimated, height: keyboard.height }}
+      />
+    </Fragment>
   );
 }

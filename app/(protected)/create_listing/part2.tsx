@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useListingForm } from "./components";
+import { $listingSubmision } from ".";
 import { PROPERTY_TYPES, PropertyType } from "./constants";
 
 export function useSharedValuesFromTexts(
@@ -197,10 +197,10 @@ const styles = StyleSheet.create({
 
 export default function CreateListing2() {
   const { top, bottom } = useSafeAreaInsets();
-  const { propertyType, setPropertyType } = useListingForm();
+  // const { propertyType, setPropertyType } = useListingForm();
   const houseTypes = useSharedValuesFromTexts(
     PROPERTY_TYPES.map((propType) => propType.label),
-    propertyType
+    $listingSubmision.get().propertyType
   );
   const theme = useTheme();
 
@@ -303,7 +303,7 @@ export default function CreateListing2() {
             renderItem={({ index, item }) => (
               <SelectPill
                 onSelect={() => {
-                  setPropertyType(item.text);
+                  $listingSubmision.setKey("propertyType", item.text);
                 }}
                 text={item.text}
                 selected={item.sharedValue}

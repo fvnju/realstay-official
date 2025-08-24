@@ -1,4 +1,5 @@
 import { useTheme } from "@/hooks/useTheme";
+import { useStore } from "@nanostores/react";
 import { Fragment } from "react";
 import {
   KeyboardAvoidingView,
@@ -11,7 +12,8 @@ import {
 } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FormSection, useListingForm } from "./components";
+import { $listingSubmision } from ".";
+import { FormSection } from "./components";
 import { FORM_LABELS } from "./constants";
 
 export default function TitleDescriptionPage() {
@@ -19,8 +21,14 @@ export default function TitleDescriptionPage() {
   const { bottom } = useSafeAreaInsets();
 
   // Use Jotai form state
-  const { title, description, handleTitleChange, handleDescriptionChange } =
-    useListingForm();
+  const { title, description } = useStore($listingSubmision);
+
+  function handleTitleChange(t: string) {
+    $listingSubmision.setKey("title", t);
+  }
+  function handleDescriptionChange(t: string) {
+    $listingSubmision.setKey("description", t);
+  }
 
   const titleCharacterLimit = 60;
   const descriptionCharacterLimit = 500;

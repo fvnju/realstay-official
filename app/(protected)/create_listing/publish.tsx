@@ -1,16 +1,9 @@
 import Listing from "@/components/Listing";
 import { useTheme } from "@/hooks/useTheme";
 import { Stack } from "expo-router";
-import { useAtomValue } from "jotai";
-import { CheckCircle, Pen as Edit, Eye, Sparkle } from "phosphor-react-native";
+import { CheckCircle, Eye, Sparkle } from "phosphor-react-native";
 import React, { useEffect } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -19,12 +12,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { listingFormDataAtom } from "./store";
+import { $listingSubmision } from ".";
 
 export default function PublishPage() {
   const theme = useTheme();
   const { top } = useSafeAreaInsets();
-  const listingData = useAtomValue(listingFormDataAtom);
+  const listingData = $listingSubmision.get();
 
   // Animation values
   const headerOpacity = useSharedValue(0);
@@ -130,7 +123,7 @@ export default function PublishPage() {
                   Listing Preview
                 </Text>
               </View>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[
                   styles.editButton,
                   {
@@ -152,7 +145,7 @@ export default function PublishPage() {
                 >
                   Edit
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             <View

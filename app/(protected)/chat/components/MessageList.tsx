@@ -1,15 +1,17 @@
 import { ChatBubble } from "@/components/ChatBubble";
 import React, { forwardRef, useCallback } from "react";
-import { FlatList } from "react-native";
+import { FlatList, RefreshControl } from "react-native";
 import { ChatSocketResponse } from "../hooks/useChatData";
 
 interface MessageListProps {
   messages: ChatSocketResponse[];
   currentUserId: string;
+  isRefetching?: boolean;
+  refetchFn?: () => void;
 }
 
 export const MessageList = forwardRef<FlatList, MessageListProps>(
-  ({ messages, currentUserId }, ref) => {
+  ({ messages, currentUserId, isRefetching, refetchFn }, ref) => {
     const renderItem = useCallback(
       ({ item, index }: { item: ChatSocketResponse; index: number }) => (
         <ChatBubble
@@ -40,6 +42,12 @@ export const MessageList = forwardRef<FlatList, MessageListProps>(
         })}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 8 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={Boolean(isRefetching)}
+            onRefresh={refetchFn}
+          />
+        }
       />
     );
   }

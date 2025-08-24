@@ -67,7 +67,7 @@ export function useChatSocket(token: string | null, receiverId: string) {
 
   useEffect(() => {
     const socket = socketRef.current;
-    if (!socket) return;
+    if (socket === null) return;
 
     const handleReceiveMessage = (message: ChatSocketResponse) => {
       setMessages((prev) => {
@@ -86,7 +86,10 @@ export function useChatSocket(token: string | null, receiverId: string) {
       }
     };
 
-    socket.on("receive_message", handleReceiveMessage);
+    socket.on("receive_message", (message) => {
+      console.log("received");
+      handleReceiveMessage(message);
+    });
     socket.on("typing", handleTyping);
 
     return () => {

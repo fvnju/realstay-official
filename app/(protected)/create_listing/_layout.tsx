@@ -4,6 +4,7 @@ import { getAuthToken, post } from "@/utils/apiClient";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 
+import ENDPOINT from "@/constants/endpoint";
 import { atom, useAtom, useAtomValue } from "jotai";
 import { ArrowLeft, CheckCircle, X } from "phosphor-react-native";
 import { Fragment, memo, useCallback, useEffect, useRef } from "react";
@@ -31,6 +32,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
+import { $listingSubmision, initValues } from ".";
 import { useListingForm } from "./components";
 import { listingAddressAtom } from "./store";
 
@@ -89,10 +91,10 @@ function Layout() {
   const uploadImages = async () => {
     try {
       const token = await getAuthToken();
-      const formData = new FormData();
 
       // Process all images and add them to FormData (React Native way)
-      for (const img of listingForm.photos) {
+      for (const img of $listingSubmision.get().photos) {
+        const formData = new FormData();
         const imageUri = img.uri;
         const fileName = img.fileName ?? imageUri.split("/").pop() ?? "unknown";
         const fileType = fileName.includes(".")
@@ -100,34 +102,28 @@ function Layout() {
           : "image/jpeg";
 
         // React Native FormData expects this format
-        formData.append("images", {
+        formData.append("file", {
           uri: imageUri,
           name: fileName,
           type: fileType,
         } as any);
-      }
 
-      // Upload with authentication
-      const response = await fetch(
-        "https://goimageupload-t2jme.sevalla.app/upload",
-        {
+        // Upload with authentication
+        const response = await fetch(ENDPOINT + "/utility/file-upload", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
           },
           body: formData,
-        }
-      );
+        });
 
-      if (response.ok) {
-        const result = await response.json();
-        imageURls.current = (result as { files: string[] }).files.map(
-          (val) => `https://goimageupload-t2jme.sevalla.app/${val}`
-        );
-        toast.info("Upload successful!");
-      } else {
-        const errorText = await response.text();
-        toast.error("Upload failed:", { description: response.statusText });
+        if (response.ok) {
+          const result = await response.json();
+          imageURls.current.push(result.data.url);
+        } else {
+          const errorText = await response.text();
+          toast.error("Upload failed:", { description: errorText });
+        }
       }
     } catch (e) {
       if (e instanceof Error)
@@ -136,33 +132,8 @@ function Layout() {
   };
 
   const createListing = async () => {
+    const listingForm = $listingSubmision.get();
     try {
-      // Validate required fields before sending
-      const requiredFields = {
-        address: listingForm.address,
-        state: listingForm.state,
-        latitude: listingForm.latitude,
-        longitude: listingForm.longitude,
-        propertyType: listingForm.propertyType,
-        title: listingForm.title,
-        description: listingForm.description,
-        price: listingForm.price,
-        paymentCycle: listingForm.paymentCycle,
-      };
-
-      const missingFields = Object.entries(requiredFields)
-        .filter(
-          ([_, value]) => value === undefined || value === null || value === ""
-        )
-        .map(([key, _]) => key);
-
-      if (missingFields.length > 0) {
-        toast.error("Missing required fields:", {
-          description: missingFields.join(", "),
-        });
-        console.log(missingFields);
-      }
-
       const data = {
         place_holder_address: listingForm.address,
         google_formatted_address: "n/a",
@@ -176,14 +147,12 @@ function Layout() {
         no_of_bedrooms: Number(listingForm.bedrooms) || 0,
         no_of_bathrooms: Number(listingForm.bathrooms) || 0,
         are_parties_allowed: Boolean(listingForm.partiesAllowed),
-        extra_offerings: Array.isArray(listingForm.amenities)
-          ? listingForm.amenities
-          : [],
+        extra_offerings: listingForm.amenities,
         title: listingForm.title,
         description: listingForm.description,
         cost: Number(listingForm.price),
         cost_cycle: listingForm.paymentCycle,
-        photos: imageURls.current || [],
+        photos: imageURls.current,
       };
 
       console.log("Sending listing data:", data);
@@ -389,7 +358,7 @@ function Layout() {
         withSpring(1, { damping: 15, stiffness: 150 })
       );
 
-      resetForm();
+      $listingSubmision.set(initValues);
 
       // Auto-navigate after success
       setTimeout(() => {

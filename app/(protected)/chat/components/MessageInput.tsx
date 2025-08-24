@@ -1,8 +1,19 @@
 import { useTheme } from "@/hooks/useTheme";
+import {
+  type MarkdownRange,
+  MarkdownTextInput,
+  parseExpensiMark,
+} from "@expensify/react-native-live-markdown";
 import * as Haptics from "expo-haptics";
 import { PaperPlaneTilt, X } from "phosphor-react-native";
 import React, { useRef } from "react";
-import { TextInput, TouchableOpacity, View } from "react-native";
+import { TouchableOpacity, View } from "react-native";
+
+function parser(input: string): MarkdownRange[] {
+  "worklet";
+  const range: MarkdownRange[] = parseExpensiMark(input);
+  return range;
+}
 
 interface MessageInputProps {
   text: string;
@@ -24,11 +35,11 @@ export function MessageInput({
   onToggleAttachments,
 }: MessageInputProps) {
   const theme = useTheme();
-  const textRef = useRef<TextInput>(null);
+  const textRef = useRef<MarkdownTextInput>(null);
 
   const handleSend = () => {
     onSend();
-    textRef.current?.clear();
+    // No need to clear manually since we're using controlled input
   };
 
   return (
@@ -57,7 +68,8 @@ export function MessageInput({
         <X color={theme.colors.appTextPrimary} weight="bold" size={24} />
       </TouchableOpacity>
 
-      <TextInput
+      <MarkdownTextInput
+        parser={parser}
         ref={textRef}
         defaultValue={text}
         onChangeText={onTextChange}

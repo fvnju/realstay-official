@@ -1,5 +1,6 @@
 import { useTheme } from "@/hooks/useTheme";
 import { Stack } from "expo-router";
+import { deepMap } from "nanostores";
 import { House as Home } from "phosphor-react-native";
 import React, { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -13,6 +14,30 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddListingForm } from "./components/AddListingForm";
+import { NigerianState } from "./constants";
+import { ListingFormData } from "./types";
+
+export const initValues: ListingFormData = {
+  address: "",
+  state: "" as NigerianState,
+  lga: "",
+  latitude: 0,
+  longitude: 0,
+  photos: [],
+  propertyType: "House",
+  beds: 0,
+  bedrooms: 0,
+  bathrooms: 0,
+  petsAllowed: false,
+  partiesAllowed: false,
+  title: "",
+  description: "",
+  price: 0,
+  paymentCycle: "daily",
+  amenities: [],
+};
+
+export const $listingSubmision = deepMap<ListingFormData>(initValues);
 
 export default function CreateListing() {
   const theme = useTheme();
@@ -66,9 +91,7 @@ export default function CreateListing() {
         },
       ]}
     >
-      <Stack.Screen
-        options={{ headerShown: false, animation: "slide_from_bottom" }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
 
       {/* Enhanced Title Section */}
       <Animated.View style={[styles.titleSection, titleAnimatedStyle]}>

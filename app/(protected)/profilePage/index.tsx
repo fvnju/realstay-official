@@ -1,6 +1,7 @@
 import { createThemedStyles } from "@/constants/themes";
 import { useTheme } from "@/hooks/useTheme";
 import { apiRequest } from "@/utils/apiClient";
+import { Image } from "expo-image";
 import { Stack, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import {
@@ -62,10 +63,20 @@ const ProfileHeader = ({
     <View style={componentStyles.profileCard}>
       <View style={componentStyles.avatarContainer}>
         <View style={componentStyles.avatar}>
-          <Text style={componentStyles.avatarText}>
-            {userInfo.first_name.charAt(0)}
-            {userInfo.last_name.charAt(0)}
-          </Text>
+          {userInfo.image_url === null ? (
+            <Text style={componentStyles.avatarText}>
+              {userInfo.first_name.charAt(0)}
+              {userInfo.last_name.charAt(0)}
+            </Text>
+          ) : (
+            <Image
+              source={{ uri: userInfo.image_url }}
+              style={{
+                width: componentStyles.avatar.width,
+                height: componentStyles.avatar.height,
+              }}
+            />
+          )}
         </View>
         <TouchableOpacity
           style={componentStyles.editButton}
@@ -422,6 +433,7 @@ const createComponentStyles = (theme: any) =>
       backgroundColor: theme.colors?.primary || "#0078ff",
       alignItems: "center",
       justifyContent: "center",
+      overflow: "hidden",
     },
     avatarText: {
       fontSize: theme.fontSizes?.h1 || 34,

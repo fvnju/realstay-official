@@ -9,7 +9,7 @@ export interface ImageData {
   fileName?: string;
 }
 
-export interface ListingFormData {
+export type ListingFormData = {
   address: string;
   state: NigerianState;
   lga: string;
@@ -27,7 +27,7 @@ export interface ListingFormData {
   price: number;
   paymentCycle: PaymentCycle;
   amenities: string[];
-}
+};
 
 export interface FormSectionProps {
   label: string;

@@ -33,6 +33,15 @@ import { getCurrentLocation, locationAtom } from "@/utils/location";
 import { useServerWarmup } from "@/utils/serverWarmup";
 import "expo-dev-client";
 import "react-native-reanimated";
+import * as Sentry from "@sentry/react-native";
+
+Sentry.init({
+    dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+    // Adds more context data to events (IP address, cookies, user, etc.)
+    // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+    sendDefaultPii: true,
+    debug: false
+});
 
 onlineManager.setEventListener((setOnline) => {
   const eventSubscription = Network.addNetworkStateListener((state) => {
@@ -61,7 +70,7 @@ const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
 });
 
-export default function RootLayout() {
+function RootLayout() {
   const setCurrentLocation = useSetAtom(locationAtom);
   useEffect(() => {
     const getLocation = async () => {
@@ -150,3 +159,5 @@ export default function RootLayout() {
     </Fragment>
   );
 }
+
+export default Sentry.wrap(RootLayout);

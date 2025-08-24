@@ -29,6 +29,7 @@ import { useServerWarmup } from "@/utils/serverWarmup";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { atom } from "nanostores";
 import { ArrowLeft, MagnifyingGlass } from "phosphor-react-native";
 import {
   FlatList,
@@ -265,7 +266,7 @@ const HomeScreen = ({ usersName, userInfo }: HomeScreenProps) => {
     if (status === "ready") {
       fetchListings();
     }
-  }, [status, fetchListings]);
+  }, [status]);
 
   // Debounced search
   useDebouncedEffect(
@@ -640,6 +641,8 @@ const SearchSheet = React.forwardRef<any, any>(
   }
 );
 
+export const $preventDoubleNav = atom(false);
+
 // Listings Content Component
 const ListingsContent = ({
   loading,
@@ -691,24 +694,31 @@ const ListingsContent = ({
           </Text>
         </View>
       ) : (
-        listings.map((listing: Listing) => (
-          <ListingCard
-            key={listing.id}
-            onPress={() => {
-              router.push({
-                pathname: "/listing",
-                params: { id: listing.id },
-              });
-            }}
-            currency={listing.currency}
-            dateRange={listing.dateRange}
-            distance={listing.distance}
-            imageUrl={listing.imageUrl}
-            location={listing.location}
-            price={listing.price}
-            rating={listing.rating}
-          />
-        ))
+        listings.map((listing: Listing) => {
+          // console.log(listing.imageUrl);
+
+          return (
+            <ListingCard
+              key={listing.id}
+              onPress={() => {
+                if (!$preventDoubleNav.get()) {
+                  $preventDoubleNav.set(true);
+                  router.push({
+                    pathname: "/listing",
+                    params: { id: listing.id },
+                  });
+                }
+              }}
+              currency={listing.currency}
+              dateRange={listing.dateRange}
+              distance={listing.distance}
+              imageUrl={listing.imageUrl}
+              location={listing.location}
+              price={listing.price}
+              rating={listing.rating}
+            />
+          );
+        })
       )}
       <View style={{ height: 68 }} />
     </ScrollView>

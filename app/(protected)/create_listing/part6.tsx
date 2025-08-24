@@ -1,4 +1,5 @@
 import { useTheme } from "@/hooks/useTheme";
+import { useStore } from "@nanostores/react";
 import { Calendar, CurrencyNgn } from "phosphor-react-native";
 import { Fragment } from "react";
 import {
@@ -19,16 +20,24 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FormSection, useListingForm } from "./components";
+import { $listingSubmision } from ".";
+import { FormSection } from "./components";
 import { FORM_LABELS, PAYMENT_CYCLES } from "./constants";
+import { ListingFormData } from "./types";
 
 export default function PricingPage() {
   const theme = useTheme();
   const { bottom } = useSafeAreaInsets();
 
   // Use Jotai form state
-  const { price, paymentCycle, setPaymentCycle, handlePriceChange } =
-    useListingForm();
+  const { price, paymentCycle } = useStore($listingSubmision);
+
+  function setPaymentCycle(ans: ListingFormData["paymentCycle"]) {
+    $listingSubmision.setKey("paymentCycle", ans);
+  }
+  function handlePriceChange(ans: string) {
+    $listingSubmision.setKey("price", Number(ans));
+  }
 
   // Format price for display
   const formatPriceForDisplay = (value: number) => {
@@ -237,7 +246,7 @@ export default function PricingPage() {
                   ]}
                   placeholder="0"
                   placeholderTextColor={theme.colors.appTextSecondary}
-                  defaultValue={formatPriceForDisplay(price)}
+                  defaultValue={price.toString()}
                   onChangeText={handlePriceChange}
                   keyboardType="numeric"
                   returnKeyType="done"

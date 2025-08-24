@@ -28,7 +28,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useListingForm } from "./components";
+import { $listingSubmision } from ".";
+import { ListingFormData } from "./types";
 
 export function useSharedValuesFromTexts(
   items: { text: string; icon: JSX.Element }[],
@@ -47,8 +48,13 @@ export function useSharedValuesFromTexts(
 export default function CreateListing3() {
   const { top, bottom } = useSafeAreaInsets();
   const theme = useTheme();
-  const { amenities: formAmenities, setAmenities: setFormAmenities } =
-    useListingForm();
+  const [formAmenities, setFormAmmenities] = useState<
+    ListingFormData["amenities"]
+  >($listingSubmision.get().amenities);
+
+  useEffect(() => {
+    $listingSubmision.setKey("amenities", formAmenities);
+  }, [formAmenities]);
 
   const iconStyle: IconProps = {
     size: 28,
@@ -181,6 +187,11 @@ export default function CreateListing3() {
             contentContainerStyle={styles.gridContent}
             renderItem={({ index, item }) => (
               <ItemPill
+                setAmenities={
+                  setFormAmmenities as ReturnType<
+                    typeof useState<ListingFormData["amenities"]>
+                  >[1]
+                }
                 text={item.text}
                 icon={item.icon}
                 selected={item.sharedValue}
@@ -204,15 +215,17 @@ function ItemPill({
   otherSharedValues,
   elementIndex,
   delay = 0,
+  setAmenities,
 }: {
   text: string;
+  setAmenities: ReturnType<typeof useState<ListingFormData["amenities"]>>[1];
   icon: JSX.Element;
   selected: SharedValue<boolean>;
   otherSharedValues: ReturnType<typeof useSharedValuesFromTexts>;
   elementIndex: number;
   delay?: number;
 }) {
-  const { setAmenities } = useListingForm();
+  // const { setAmenities } = useListingForm();
   const theme = useTheme();
   const { width } = useWindowDimensions();
 
@@ -258,10 +271,10 @@ function ItemPill({
     setIsSelected(newSelectedState);
 
     if (newSelectedState) {
-      setAmenities((prev) => [...prev, text]);
+      setAmenities((prev) => [...prev!, text]);
     } else {
       setAmenities((prev) =>
-        prev.filter((item) => {
+        prev!.filter((item) => {
           return item !== text;
         })
       );

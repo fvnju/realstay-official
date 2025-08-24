@@ -1,4 +1,5 @@
 import { useTheme } from "@/hooks/useTheme";
+import { useStore } from "@nanostores/react";
 import { Minus, Plus } from "phosphor-react-native";
 import { Fragment } from "react";
 import {
@@ -10,7 +11,8 @@ import {
 } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FormSection, useListingForm } from "./components";
+import { $listingSubmision } from ".";
+import { FormSection } from "./components";
 import { FORM_LABELS } from "./constants";
 
 export default function PropertyDetailsPage() {
@@ -18,18 +20,24 @@ export default function PropertyDetailsPage() {
   const { bottom } = useSafeAreaInsets();
 
   // Use Jotai form state
-  const {
-    bedrooms,
-    bathrooms,
-    beds,
-    petsAllowed,
-    partiesAllowed,
-    setBedrooms,
-    setBathrooms,
-    setBeds,
-    setPetsAllowed,
-    setPartiesAllowed,
-  } = useListingForm();
+  const { bedrooms, bathrooms, beds, petsAllowed, partiesAllowed } =
+    useStore($listingSubmision);
+
+  function setBedrooms(n: number) {
+    $listingSubmision.setKey("bedrooms", n);
+  }
+  function setBathrooms(n: number) {
+    $listingSubmision.setKey("bathrooms", n);
+  }
+  function setBeds(n: number) {
+    $listingSubmision.setKey("beds", n);
+  }
+  function setPetsAllowed(n: boolean) {
+    $listingSubmision.setKey("petsAllowed", n);
+  }
+  function setPartiesAllowed(n: boolean) {
+    $listingSubmision.setKey("partiesAllowed", n);
+  }
 
   const CounterInput = ({
     label,
@@ -185,22 +193,22 @@ export default function PropertyDetailsPage() {
                 label={FORM_LABELS.bedrooms}
                 value={bedrooms}
                 onIncrement={() => setBedrooms(bedrooms + 1)}
-                onDecrement={() => setBedrooms(Math.max(1, bedrooms - 1))}
-                min={1}
+                onDecrement={() => setBedrooms(Math.max(0, bedrooms - 1))}
+                min={0}
               />
               <CounterInput
                 label={FORM_LABELS.bathrooms}
                 value={bathrooms}
                 onIncrement={() => setBathrooms(bathrooms + 1)}
-                onDecrement={() => setBathrooms(Math.max(1, bathrooms - 1))}
-                min={1}
+                onDecrement={() => setBathrooms(Math.max(0, bathrooms - 1))}
+                min={0}
               />
               <CounterInput
                 label={FORM_LABELS.beds}
                 value={beds}
                 onIncrement={() => setBeds(beds + 1)}
-                onDecrement={() => setBeds(Math.max(1, beds - 1))}
-                min={1}
+                onDecrement={() => setBeds(Math.max(0, beds - 1))}
+                min={0}
               />
             </View>
           </FormSection>
